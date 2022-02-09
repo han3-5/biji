@@ -81,3 +81,15 @@ ssh-keygen -t rsa -C "youremail@example.com"
 <font color = "red">**`git remote add origin git库的地址`**</font>将本地库与远程库连接 `origin`是远程库的一个名字
 
 <font color = "red">**`git push -u origin master`**</font>将master分支推送到名叫origin 远程库上`-u`是第一次推送将两个分支关联
+
+<font color = "red">**`git pull origin master`**</font>将origin远程库拉取到本地
+
+#### 删除远程库
+
+<font color = "red">**`git remote rm 远程库名`**</font> 删除远程库使用前最好先使用
+
+<font color = "red">**`git remote -v`**</font>查看远程库信息
+
+#### 克隆远程库
+
+<font color = "red">**`git clone 地址`**</font> 将远程库克隆下来

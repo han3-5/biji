@@ -410,7 +410,7 @@ String str = df.format(new Date());
 System.out.println(str);
 ~~~
 
-![](D:\笔记\java笔记\image\9A7[W49`89JWQVMG$JW}9VY.png)
+![](./image/9A7[W49`89JWQVMG$JW}9VY.png)
 
 #### Calender日历类
 
@@ -465,17 +465,17 @@ enum 枚举名{
 
 > UML	统一建模语言,用于描述类的属性，方法，以及类于类之间的关系
 
-![2318](D:\笔记\java笔记\image\2318.png)
+![2318](./image/2318.png)
 
-![2319](D:\笔记\java笔记\image\2319.png)
+![2319](./image/2319.png)
 
 > 带箭头的实线，表示都继承
 
-![2320](D:\笔记\java笔记\image\2320.png)
+![2320](./image/2320.png)
 
 > 带箭头的虚线，表示实现
 
-![2321](D:\笔记\java笔记\image\2321.png)
+![2321](./image/2321.png)
 
 
 
