@@ -52,7 +52,7 @@ Git是目前世界上最先进的**分布式版本控制系统**
 
 Git的版本库里存了很多东西，其中最重要的就是称为stage（或者叫index）的暂存区，还有Git为我们自动创建的第一个分支`master`，以及指向`master`的一个指针叫`HEAD`
 
-![](.\image\01.png)
+![](./image/01.png)
 
 #### 撤销修改
 
@@ -78,7 +78,6 @@ ssh-keygen -t rsa -C "youremail@example.com"
 
 然后在github上添加SSH，将**`id_rsa.pub`**内容复制进去
 
+<font color = "red">**`git remote add origin git库的地址`**</font>将本地库与远程库连接 `origin`是远程库的一个名字
 
-
-<font color = "red">**`git remote add origin git库的地址`**</font>将本地库与远程库连接
-
+<font color = "red">**`git push -u origin master`**</font>将master分支推送到名叫origin 远程库上`-u`是第一次推送将两个分支关联
