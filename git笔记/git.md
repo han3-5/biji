@@ -68,6 +68,12 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 
 ## 远程仓库
 
+#### 推送/拉取
+
+<font color = "red">**`git push 远程主机 本地分支:远程分支`**</font>  推送
+
+<font color = "red">**`git pull 远程主机 远程分支:本地分支`**</font>  拉取
+
 #### 添加远程库
 
 第1步：创建SSH Key。在用户主目录下，看看有没有.ssh目录，如果有，再看看这个目录下有没有**`id_rsa`**和**`id_rsa.pub`**这两个文件。创建SSH Key：
@@ -80,10 +86,6 @@ ssh-keygen -t rsa -C "youremail@example.com"
 
 <font color = "red">**`git remote add origin git库的地址`**</font>将本地库与远程库连接 `origin`是远程库的一个名字
 
-<font color = "red">**`git push -u origin master`**</font>将master分支推送到名叫origin 远程库上`-u`是第一次推送将两个分支关联
-
-<font color = "red">**`git pull origin master`**</font>将origin远程库拉取到本地
-
 #### 删除远程库
 
 <font color = "red">**`git remote rm 远程库名`**</font> 删除远程库使用前最好先使用
@@ -93,3 +95,78 @@ ssh-keygen -t rsa -C "youremail@example.com"
 #### 克隆远程库
 
 <font color = "red">**`git clone 地址`**</font> 将远程库克隆下来
+
+## 分支管理
+
+Git 中的分支,其实本质上仅仅是个指向 commit 对象的可变指针。 Git 会使用 master 作为分支的默认名字。
+
+#### 创建与合并分支
+
+<font color = "red">**`git branch`**</font>  查看分支，当前分支前面会标一个**`*`** 号
+
+<font color = "red">**`git branch 分支名`**</font> 创建分支
+
+<font color = "red">**`git branch -d 分支名`**</font> 将分支删除
+
+<font color = "red">**`git branch -D 分支名`**</font> 将还未合并的分支强行删除
+
+<font color = "red">**`git checkout 分支名`**</font> 切换分支
+
+<font color = "red">**`git merge 分支A`**</font>  将分支A合并到此分支上
+
+#### 分支管理策略
+
+通常，合并分支时，如果可能，Git会用`Fast forward`模式，但这种模式下，删除分支后，会丢掉分支信息。
+
+<font color = "red">**`git merge --no --ff -m "说明信息" 分支名`**</font> **`--no --ff`** 参数用来禁用 **` Fast forward`** 模式
+
+#### Bug分支
+
+主分支上发现一个Bug，但是在此分支上的工作还没有提交，这个时候使用
+
+<font color = "red">**`git stash`**</font> 将当前工作现场“储藏”起来。
+
+<font color = "red">**`git stash list`**</font> 查看被储藏的工作现场
+
+<font color = "red">**`git stash apply`**</font> 可以恢复被储藏起来的工作现场，但是stash内容并不删除，需要使用<font color = "red">**`git stash drop`**</font> 来删除。另一种<font color = "red">**`git stash pop`**</font> 可以恢复并删除
+
+`git stash apply ` + `git stash drop` = `git stash pop`
+
+新建了一个分支去修复主分支上的问题后想要将此修复内容同步到正在开发的分支上可以使用<font color = "red">**`git cherry-pick <commit名称>`**</font> 
+
+## 标签管理
+
+Git的标签相当于版本库的快照
+
+#### 创建标签
+
+<font color = "red">**`git tag `**</font>  查看所有标签
+
+<font color = "red">**`git tag 标签名`**</font> 创建标签 
+
+#### 操作标签
+
+<font color = "red">**`git tag -d 标签名`**</font>  删除标签
+
+<font color = "red">**`git push origin 标签名`**</font> 推送一个本地标签到远程库
+
+<font color = "red">**`git push origin --tags`**</font>  推送全部未推送的本地标签
+
+## 自定义Git
+
+#### 忽略文件
+
+有些时候我们不想把某些文件纳入版本控制中，比如数据库文件，临时文件，设计文件等
+
+在主目录下建立**` .gitignore`** 文件，有以下规则：
+
+- 忽略文件中的空行或者（#）开始的行会被忽略
+- 如果名称前有一个感叹号（！）表示例外，将不被忽略
+- 如果名称后面有路径分隔符（/）表示忽略此目录下该名称的子目录
+
+~~~bash
+#为注释
+*.txt		#忽略所有 .txt结尾的文件
+!test.txt	#除了test.txt都被忽略
+temp/		#temp目录下所有文件都被忽略
+~~~
