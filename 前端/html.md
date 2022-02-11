@@ -1,3 +1,34 @@
+## 行元素、块元素、行内块元素
+
+display:inline				转为行元素
+
+display:block				转为块元素
+
+display:inline-block	转为行内块元素
+
+#### 行元素
+
+1. 设置宽高无效
+2. 对margin仅设置左右方向有效，上下无效；padding设置上下左右都有效，即撑大空间
+3. 不会自动进行换行
+
+行内元素有：a、b、u、span、**img**、input、strong、select、sub、sup、label、em、button、textarea、tt、var、samp、br、cite、code、font、strike等等
+
+#### 块状元素
+
+1. 能识别宽高
+2. margin和padding的上下左右都对其有效
+3. 可以自动换行
+4. 多个块状元素写在一起，默认排列为从上至下
+
+块级元素有：h1、p、hr、ul、ol、table、form、div等等
+
+#### 行内块元素
+
+1. 不自动换行
+2. 能识别宽高
+3. 默认排列方式从左到右
+
 ## 列表
 
 #### 有序列表

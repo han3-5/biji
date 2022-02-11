@@ -102,6 +102,8 @@ Git 中的分支,其实本质上仅仅是个指向 commit 对象的可变指针�
 
 #### 创建与合并分支
 
+如果当前分支没有文件，暂时不能创建新分支
+
 <font color = "red">**`git branch`**</font>  查看分支，当前分支前面会标一个**`*`** 号
 
 <font color = "red">**`git branch 分支名`**</font> 创建分支
