@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        *{margin: 0; padding: 0;}
+        #all{
+            width: 500px;
+            height: 350px;
+            margin: 0 auto;
+            position: relative;
+        }
+        img{
+            float: left;
+            height: 350px;
+            width: 500px;
+            display: none;  /*将所有图片先隐藏掉*/
+        }
+        #foot{
+            position: absolute;
+            top: 310px;
+            left: 350px;
+        }
+        span:hover{
+            cursor: pointer;
+        }
+        #foot span{
+            border: 1px solid rgb(187, 134, 65);
+            color: black;
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin: 3px;
+            line-height: 15px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        #foot span:hover{
+            background-color: rgb(224, 87, 213);
+        }
+        #left,#right{
+            height: 50px;
+            width: 50px;
+            text-decoration: none;
+            font-size: 50px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            color: rgb(211, 90, 161);
+            display: none;
+            position: absolute;
+            top: 165px;
+        }
+        #left:hover{
+            background-color: rgba(136, 133, 133, 0.247);
+        }
+        #right:hover{
+            background-color: rgba(136, 133, 133, 0.247);
+        }
+        #left{
+            left: 10px;
+        }
+        #right{
+            right:10px
+        }
+    </style>
+</head>
+<body>
+    <div id="all">
+        <div id="head">
+            <img src="./images/1.webp" alt="">
+            <img src="./images/2.webp" alt="">
+            <img src="./images/3.webp" alt="">
+            <img src="./images/4.webp" alt="">
+            <img src="./images/5.jpg" alt="">
+        </div>
+        <div id="foot">
+            <span onclick="x(1)">1</span>
+            <span onclick="x(2)">2</span>
+            <span onclick="x(3)">3</span>
+            <span onclick="x(4)">4</span>
+            <span onclick="x(5)">5</span>
+        </div>
+        <span id="left" onclick="priv()">&lt;</span>
+        <span id="right" onclick="next()">&gt;</span>
+    </div>
+    <script>
+        var a = document.getElementById('head').children;
+        var left = document.getElementById('left');
+        var right = document.getElementById('right');
+        var num = document.getElementById('foot').children;
+        var all = document.getElementById('all');
+        var index = 0;
+        //页面加载之后将当前元素显示出来
+        document.onreadystatechange = function(){
+            if(document.readyState == "complete"){
+                a[index].style.display = 'inline';
+                num[index].style.backgroundColor = 'pink';
+                autoPlay();
+            }
+        }
+        //上一个。首先隐藏当前元素，判断一下边界问题，再将要出现的画面显示
+        function priv(){    
+            a[index].style.display = 'none';
+            num[index].style.backgroundColor = null;
+            if(index == 0){index = 5;}
+            a[index-1].style.display = 'inline';
+            num[index-1].style.backgroundColor = 'pink';
+            index--;
+        }
+        //下一个。原理同上
+        function next(){
+            a[index].style.display = 'none';
+            num[index].style.backgroundColor = null;
+            if(index == 4){index = -1;}
+            a[index+1].style.display = 'inline';
+            num[index+1].style.backgroundColor = 'pink';
+            index++;
+        }
+        //跳转功能，原理同上
+        function x(x){
+            a[index].style.display = 'none';
+            num[index].style.backgroundColor = null;
+            a[x-1].style.display = 'inline';
+            num[x-1].style.backgroundColor = 'pink';
+            index = x-1;
+        }
+        //定时器
+        var autopl = null;
+        function autoPlay(){
+            autopl = setInterval("next()",1000);
+        }
+        //鼠标放入后，显示左右箭头，并清除自动播放
+        all.onmouseenter = function(){
+            left.style.display = 'inline';
+            right.style.display = 'inline';
+            clearInterval(autopl);  //清除自动播放
+        }
+        //鼠标离开后，隐藏左右箭头,并自动播放
+        all.onmouseleave = function(){
+            left.style.display = 'none';
+            right.style.display = 'none';
+            autoPlay(); //自动播放
+        }
+    </script>
+</body>
+</html>
