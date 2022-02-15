@@ -29,8 +29,10 @@ myisam 是早些年使用
 | 事务支持     | 支持                 | 不支持 |
 | 数据行锁定   | 支持                 | 不支持 |
 | 外键约束     | 支持                 | 不支持 |
-| 全文索引     | 不支持               | 支持   |
+| 全文索引     | 支持                 | 支持   |
 | 表空间的大小 | 较大，约为myisam 2倍 | 较小   |
+
+InooDB 在5.7之前版本重启数据库自增量会从 1 开始(因为存在在内存中)。
 
 **常规使用操作**
 
@@ -93,6 +95,8 @@ update mysql.user set authentication_string=password('123456') where user='root'
 - float               单精度浮点数      4个字节
 - double           双精度浮点数     8个字节
 - decimal         字符串形式的浮点数   金融计算的时候，一般使用
+
+decimal(9,2)	 代表 整数 9 位，小数 2 位
 
 > 字符串
 
@@ -239,3 +243,473 @@ alter table `表名` add constraint `约束名` foreign key (`作为外键的列
 
 - 数据库就是单纯的表，只用来存数据，只有行（数据）和列（字段）
 - 想使用多张表的数据，想使用外键（使用程序去实现）
+
+## DML
+
+#### 插入
+
+~~~sql
+-- 插入值
+insert into `表名`(`列名1`,`列名2`) values (`列名1的值`,`列名2的值`);
+-- 不写列名，插入的值会和表一一匹配
+insert into `表名` values (`列名1的值`,`列名2的值`);
+-- 插入多条数据
+insert into `表名` values('',''···),('',''···);
+~~~
+
+#### 修改
+
+> 这个操作之前最好先备份，不然有可能需要跑路
+
+~~~sql
+-- 修改一个
+update `表名` set 列名 = 表达式 where 条件;
+-- 修改过个 逗号隔开
+update `表名` set 列名 = 表达式[,列名 = 表达式] where 条件;
+~~~
+
+#### 删除
+
+> 这个操作之前最好先备份，不然可能吃国家饭
+
+~~~sql
+-- 删除数据(会全部删除)
+delete from `表名` ;
+-- 删除指定数据
+delete from `表名` where 条件;
+~~~
+
+**TRUNCATE**
+
+作用：完全清空一个数据库表，表的结构和索引约束不会变
+
+~~~sql
+-- 删除数据,只能清除表，没有where
+truncate `表名`;
+~~~
+
+**delete 和 truncate 的区别**
+
+- 相同点：都能删除数据，都不会删除表结构
+- 不同点：
+    - truncate 重新设置 自增列 计数器会归零
+    - truncate 不会影响事务
+
+## *DQL
+
+> select 语法
+
+~~~sql
+select [all | distinct] from `表名`  
+[left | right | inner join `表名`]  -- 联合查询
+[where ...]		   			-- 满足指定条件
+[group by...]				-- 按照指定哪几个字段进行分组
+[having] 					-- 过滤分组的记录必须满足的次要条件
+[order by...(asc|desc)]		-- 指定查询的记录 按照一个或多个条件排序
+[limit ]					-- 指定查询的记录从哪条到哪条(分页)
+~~~
+
+~~~sql
+-- 查询
+select 列名 from `表名`;
+-- 起别名
+select 列名1 as 别名,列名2 as 别名 from `表名` as 别名;
+-- 函数 Concat(a,b)
+select concat('姓名：',列名) as 别名 from `表名`;
+~~~
+
+> 数据库的列（表达式）
+
+~~~sql
+select version() 	  		-- 查询系统版本
+select 100*2-1 as 计算结果    -- 用来计算
+select @@auto_increment_increment -- 查询自增的步长(变量)
+
+select `列名`+1 from `表名`    -- 还能給数字加 1
+~~~
+
+**去重distinct**
+
+作用：去除 select 查询出来的结果中重复的数据即重复的只显示一条
+
+~~~sql
+select distinct `列名` from `表名`;
+~~~
+
+**where 条件字句**
+
+like	模糊查询 	% 代表{0,}   _ 代表一个字符
+
+#### 联表查询 join
+
+![](./images/01.png)
+
+
+
+| 操作       | 描述                                   |
+| ---------- | -------------------------------------- |
+| inner join | 如果表中至少有一个匹配，就返回行内值   |
+| left join  | 会从左表中返回所有的值，即使右表中没有 |
+| right join | 会从右表中返回所有的值，即使左表中没有 |
+
+~~~ sql
+select * from `表名1` [xxx] join `表名2` on `相同的列`=`相同的列`
+~~~
+
+~~~sql
+select * from `表名1` [xxx] join `表名2` on `相同的列`=`相同的列` [xxx] join `表名3` on `相同的列`=`相同的列`
+~~~
+
+#### 联表查询 自连接
+
+#### 分页和排序
+
+排序 order by
+
+~~~sql
+select * from `表名` where 条件 order by `列名` asc| desc
+~~~
+
+分页
+
+> 缓解数据库压力
+
+~~~sql
+-- 语法：limit 起始值，几条数据
+-- 显示前五名数据
+select * from student where 条件
+limit 0,5
+~~~
+
+~~~ini
+#第一页		limie 0,5
+#第二页		limie 5,5
+#第三页		limie 10,5
+#第N页		limie (n-1)*5,5
+公式：(n-1)*pageSize,pageSize 
+#pageSize:页面大小
+#n：当前页
+#(n-1)*pageSize：起始值
+#数据总数/页面大小 = 总页数(向上取整)
+~~~
+
+#### 嵌套查询(子查询)
+
+~~~sql
+select * from `表名` where 列名 in (
+	select 列名 from `表名` where 条件
+)
+~~~
+
+#### 分组过滤
+
+~~~sql
+select * from `表名`
+group by 列名					 -- 通过什么字段来分组
+having 聚合函数的表达式			 -- 过滤
+~~~
+
+
+
+## Mysql函数
+
+#### 常用函数
+
+> 数学运算
+
+~~~sql
+select ABS(-8)		-- 绝对值
+select CEILING(9.4)	-- 向上取整
+select FLOOR(9.4)	-- 向下取整
+select RAND()		-- 返回一个0~1之间的随机数
+select SIGN(10)		-- 判断一个数的符号 负数返回-1  整数返回 1
+~~~
+
+> 字符串函数
+
+~~~sql
+select CHAR_LENGTH('')	    -- 字符串长度
+select CONCAT('你','好')	   -- 拼接字符串
+select replace(字符串,'要换的值','想换的值')	-- 替换字符串
+~~~
+
+> 时间日期（记住）
+
+~~~sql
+select current_date()			-- 获取当前日期
+select curdate()				-- 获取当前日期。上面同义词
+select now()					-- 获取当前的时间(有时分秒)
+select localtime()				-- 本地时间
+select sysdate()				-- 系统时间
+select year(now())				-- 年
+select minute(now())			-- 分钟
+~~~
+
+> 系统 
+
+~~~ sql
+select system_user()			-- 当前的用户
+select user()					-- 当前的用户
+select version()				-- 版本
+~~~
+
+#### 聚合函数
+
+> count()	查询多少个记录
+
+~~~sql
+select count(`列名`) from `表名`	-- 会忽略所有的null值
+select count(*) from `表名`		 -- 不会忽略null值，本质计算行数 
+select count(1) from `表名`		 -- 不会忽略null值，本质计算行数
+-- 执行效率
+-- 列名为主键，count(列名)比count(1)快
+-- 列名不为主键，count(1)比count(列名)快
+~~~
+
+> sum()、avg()、max()、min()	求和、求平均、最大值、最小值
+
+~~~sql
+select sum(列名) from `表名`
+select avg(列名) from `表名`
+select max(列名) from `表名`
+select min(列名) from `表名`
+~~~
+
+#### MD5 加密
+
+~~~sql
+update `表名` set `列名` = md5(`列名`) where 条件;
+select * from `表名` where `列名` = md5(加密的值);
+~~~
+
+## 事务
+
+>  什么是事务？
+
+**要么都成功，要么都失败**
+
+一组 SQL 语句放在一个批次中去执行
+
+#### 事务原则	ACID
+
+> 原子性 、一致性 、隔离性 、持久性
+
+**原子性（Atomicity）**
+
+要么都成功，要么都失败
+
+**一致性（Consistency）**
+
+事务前后的数据完整性要保证一致。比如转账前后两个人总和不变
+
+**隔离性（Isolation）**
+
+多个用户并发访问数据库时，数据库为每个用户开启的事务，不能被其他事务的操作干扰
+
+**持久性（Durability）**
+
+事务一旦提交则不可逆，被持久化到数据库中
+
+> 一些问题
+
+**脏读：**
+
+指一个事务读取了另外一个事务未提交的数据
+
+ **不可重复读：**
+
+在一个事务内读取表中的某一行数据，多次读取结果不同(不一定是错误的)
+
+**虚读(幻读)**
+
+指一个事务内读取到了别的事务插入的数据，导致前后读取不一致(数据变多了)
+
+#### 执行事务
+
+~~~sql
+-- mysql 是默认开启事务自动提交的
+set autocommit = 0	-- 关闭
+set autocommit = 1  -- 开启 (默认的)
+-- 手动处理事务
+set autocommit = 0; -- 关闭自动提交
+-- 事务开启
+start transaction;	-- 标记一个事务的开始，从这之后的sql都在同一事务内
+sql...
+sql...
+commit; 				-- 提交到持久化
+rollback;				-- 回滚：回到事务开始前的样子
+-- 事务结束
+set autocommit = 1;	 -- 开启自动提交
+~~~
+
+> 需要了解的
+
+~~~sql
+savepoint 保存点名;				-- 设置一个事务的保存点
+rollback to savepoint 保存点名; -- 回滚到保存点
+release savepoint 保存点名;		-- 撤销保存点
+~~~
+
+> 模拟场景 （转账）
+
+~~~sql
+set autocommit = 0;		-- 关闭自动提交
+start transaction;		-- 开启一个事务(一组sql)
+update `表名` set money = money - 500 where `name` = 'A';
+update `表名` set money = money + 500 where `name` = 'B';
+commit;					-- 提交事务，将被持久化
+rollback;				-- 回滚
+set autocommit = 1;		-- 开启自动提交	恢复默认值
+~~~
+
+## 索引
+
+> 索引 是帮助 mysql 高效获取数据的数据结构
+
+[CodingLabs - MySQL索引背后的数据结构及算法原理](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
+
+索引在小数据量的时候，感觉不到，但在大数据的时候，区别十分明显
+
+#### 分类
+
+- 主键索引（primary key）
+    - 唯一的标识，主键不可重复，只能有一个列作为主键
+- 唯一索引（unique key）
+    - 列不能重复，唯一索引可以重复即多个列都可以标识为 唯一索引
+- 常规索引（key / index）
+    - 默认的。index，key 关键字来设置
+- 全文索引 （fulltext）
+    - 在特定的数据库引擎下有
+    - 快速定位数据
+
+~~~sql
+show index from `表名`; 		-- 显示这个表的所有索引信息
+~~~
+
+#### 增加索引
+
+> 方式一 ：建表语句中
+
+~~~sql
+(...
+...
+primary key(要设置主键的列名),
+unique key `索引名字`(索引的列名),
+key `索引名字`(索引的列名);
+)
+~~~
+
+> 方式二 ： 建表之后
+
+~~~sql
+-- 方法一：
+alter table 表名 add [什么索引] index `索引名`(`要建立索引的列名`);
+-- 方法二 ：
+create 索引类型 index `索引名` on `表`(`列名`)
+~~~
+
+~~~sql
+-- explain	分析sql 执行的状况
+explain sql语句;
+~~~
+
+#### 删除索引
+
+~~~sql
+drop index `索引名` on `表名`;
+~~~
+
+#### 索引原则
+
+- 索引不是越多越好
+- **不对**经常变动的数据加索引
+- 小数据量的表不需要加索引
+- 索引一般加载常用来查询的字段上
+
+
+
+## 函数(存储过程)
+
+~~~sql
+delimiter $$ -- 写函数之前必须写。
+create function 名字()
+begin
+	-- sql 语句
+end;
+delimiter
+~~~
+
+## 用户
+
+创建用户
+
+~~~sql
+-- '用户名'@'哪个主机'	% 意味着谁都能连
+create user 用户名 identified by '密码';
+create user '用户名'@'%' identified by '密码';
+~~~
+
+删除用户
+
+~~~sql
+drop user 用户名;
+~~~
+
+修改密码
+
+~~~sql
+-- 指定修改用户的密码
+alter user 用户名 identified by '密码';
+alter user root@主机	identified by '密码';		-- 修改root密码
+~~~
+
+重命名
+
+~~~sql
+rename user 旧用户名 to 新用户名;
+~~~
+
+用户授权
+
+~~~sql
+-- grant 授予的意思
+-- all privileges 全部的权限(比root低) 因为 grant权限依旧为 N
+-- *.* 代表  库名.表名
+grant all privileges on *.* from 用户名;
+~~~
+
+撤销权限
+
+~~~sql
+revoke all privileges on *.* to 用户名;
+~~~
+
+查询权限
+
+~~~sql
+show grants for 用户名;
+show grants for root@主机;		-- 查看root权限的时候要带着主机
+~~~
+
+## 备份
+
+> 备份的目的
+
+- 保证重要的数据不丢失
+- 数据转移
+
+> 备份的方式
+
+- 直接拷贝物理文件
+- 在可视化工具中手动导出
+- 命令行导出 mysqldump
+
+~~~ini
+# mysqldump -h主机 -u用户名 -p密码 数据库 [表名1][表名2] > 磁盘位置/文件名
+mysqldumo -hlocalhost -uroot -p123456 数据库 [表名] > D:/a.sql
+
+# 导入
+# source 备份文件 登录情况下
+source d:/a.sql
+mysql -u用户名 -p密码 库名 < 备份文件
+~~~
