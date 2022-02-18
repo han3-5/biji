@@ -6,6 +6,21 @@
 
 下载之后解压就ok了
 
+#### linux下
+
+1. 解压这个文件
+
+~~~bash
+tar -zxvf  apache-tomcat-9.0.58.tar.gz
+~~~
+
+2. 启动tomcat
+
+~~~bash
+./startup.sh		# 启动
+./shutdown.sh		# 停止
+~~~
+
 #### 配置
 
 主要修改的配置文件是**`conf`**下的**`server.xml`**目录

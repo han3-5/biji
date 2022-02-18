@@ -666,7 +666,7 @@ drop user 用户名;
 ~~~sql
 -- 指定修改用户的密码
 alter user 用户名 identified by '密码';
-alter user root@主机	identified by '密码';		-- 修改root密码
+alter user 'root'@主机	identified by '密码';		-- 修改root密码
 ~~~
 
 重命名
