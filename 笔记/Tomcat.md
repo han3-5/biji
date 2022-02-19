@@ -21,6 +21,20 @@ tar -zxvf  apache-tomcat-9.0.58.tar.gz
 ./shutdown.sh		# 停止
 ~~~
 
+#### linux下启动慢的情况
+
+- **`find / -name java`**找到java 的jre目录
+- 打开**`jre/lib/security/java.security`**文件
+- 大概在一百多行的位置，更换如下
+
+~~~bash
+securerandom.source=file:/dev/urandom
+# 上面的更改为下面
+securerandom.source=file:/dev/./urandom
+~~~
+
+- 重启tomcat
+
 #### 配置
 
 主要修改的配置文件是**`conf`**下的**`server.xml`**目录
@@ -38,6 +52,18 @@ tar -zxvf  apache-tomcat-9.0.58.tar.gz
 ~~~xml
 <Host name="localhost"  appBase="webapps"
       unpackWARs="true" autoDeploy="true">
+~~~
+
+#### 改变默认访问路径
+
+> 可以先将root中的目录清掉，将文件放进来
+
+> 也可以更改server.xml 文件内容
+
+~~~html
+<!--<Host></Host> 标签中加入<Context> 标签-->
+<Context docBase="/test" path="" reloadble="true" />
+<!-- docBase 放入项目目录-->
 ~~~
 
 ## 文件结构

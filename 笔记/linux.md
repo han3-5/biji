@@ -1,5 +1,11 @@
 > export PATH=/bin:/usr/bin:$PATH
 
+## linux下安装配置一些环境
+
+链接: https://pan.baidu.com/s/1feC1ojz-VRGCKgPBBoDwAQ 提取码: 1aru
+
+>  **出处：B站up主CodeSheep**
+
 ## 关机
 
 ~~~bash
@@ -157,6 +163,8 @@ cp 原来的地方  新的地方
 -u ：只替换已经更换过的文件
 
 mv 文件名 文件名2
+
+> make  会扫描 Makefile 找到目标及其依赖
 
 ## 文件属性
 
