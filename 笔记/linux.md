@@ -41,7 +41,7 @@ firewall-cmd --zone=public --remove-port=xx/tcp --permanent
 1.  linux 一切皆文件
 2.  根目录**`/`** 所有文件都挂载在这个节点下
 
-![](./images/01.jpg)
+![](./images/linux01.jpg)
 
 - <font color=red>**/bin：**bin是Binary缩写，这个目录存放这经常使用的命令</font>
 
