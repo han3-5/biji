@@ -10,7 +10,9 @@
 void test([int x,]int... i){}
 ~~~
 
+## 随机数 公式
 
+**Math.random()*(n-m)+m，生成大于等于m小于n的随机数；**
 
 ## 数组
 

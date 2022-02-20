@@ -38,7 +38,7 @@ ps aux | grep nginx # 查看nginx进程
 >  从配置文件开始到events之前
 
 ~~~bash
-worker_processes 1;	# 值越大，可以支持的并发处理量就越多
+worker_processes 1;	# 值越大，可以支持的并发处理量就越多(worker数)
 ~~~
 
 **events**
@@ -129,3 +129,78 @@ location / {
 }
 ~~~
 
+#### 高可用
+
+> 高可用其实就是预防 nginx 宕机了，所以增加一台从 nginx
+
+1. 两台服务器都装上了 **nginx**
+
+2. 两台服务器都装上了 **keepalived**
+
+3. 配置主从
+
+    1. 修改**`/etc/keepalived/keepalivec.conf`** 配置文件
+
+    ~~~bash
+    global_defs{
+    	notification_email{
+    		acassen@firewall.loc
+    		failover@firewall.loc
+    		sysadmin@firewall.loc
+    	}
+    	notification_eamil_from Alexandre.Cassen@firewall.loc
+    	smtp_server xxxxxxxxxx # ip 地址
+    	smtp_connect_timeout 30
+    }
+    vrrp_script chk_http_port{
+    	script "/usr/local/src/nginx_check.sh" # 检测脚本位置
+    	interval 2 					# 检测脚本执行的间隔 2 s
+    	weight						# 权重
+    }
+    vrrp_instance VI_1{
+    	state MASTER			# 主服务器是MASTER
+    	# state BACKUP			# 备份服务器时 BACKUP
+    	interface ens0			# ifconfig后显示的网卡名
+    	virtual_router_id 51	# 主、备机的值必须相同
+    	priority 100			# 主、备机优先级，主机较大
+    	advert_int 1			# 发送信号检测是否活着 1 s
+    	authentication{			# 校验方式 
+    		auth_type PASS		
+    		auth_pass 1111
+    	}
+    	virtual_ipaddress{
+    		xxx.xxx.xxx.xxx		# 虚拟地址，通过这个访问到nginx
+    	}
+    }
+    ~~~
+    
+    2. 在**`/usr/local/src`** 目录下添加一个检测脚本
+    
+    > 在 /usr/local/src 目录下是因为 keepalived.conf 配置文件中写的
+    
+    ~~~bash
+    #！/bin/bash
+    A=`ps -C nginx -no-header | wc -1`
+    #A=`ps -C nginx --no-header | wc -1`可能是这个
+    if	[$A -eq 0];then
+    	/usr/local/nginx/sbin/nginx 	# nginx启动的地址
+    	sleep 2							# 检测到nginx挂了
+    	if[ `ps -C nginx --no-header | wc -1` -eq 0];then
+    		killall keepalived			# 让备份服务器做
+    	fi
+    fi
+    ~~~
+
+## 原理
+
+- 一个nginx中包含 master 和 worker
+- client发送一个请求，由master接受管理，worker 争抢这个请求
+- 好处：
+    - 可以进行热部署
+    - 每个worker都是独立的进程，不需要加锁
+- 设置多少个 worker 最好
+    - Nginx和redis类似都采用了 io多路复用机制
+    - 一般来说设置和cpu核心数一致
+- 最大支持的并发数
+    - 普通静态访问worker_processes*worker_connections /2
+    - 反向代理访问worker_processes*worker_connections /4
