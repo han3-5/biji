@@ -39,13 +39,7 @@ Content-Type: text/html;charset=utf-8	// 类型
 
 ## Servlet
 
-- Servlet 是sun 公司开发动态web的一门技术
-- Sun在这些api中提供了一个接口叫做：Servlet 。编写Servlet程序需要
-
-    - 编写一个普通类
-
-    - 实现Servlet 接口
-- 把实现了Servlet接口的java程序叫做 Servlet
+Servlet（Server Applet）是服务连接器，用Java编写的服务器端程序，具有生成动态Web内容的功能，Servlet是指Java语言实现的一个接口，指任何实现了这个Servlet接口的类。Servlet可以响应任何类型的请求
 
 #### 运行机制
 
@@ -128,7 +122,7 @@ public class HelloServlet extends HttpServlet {
 
 ## ServletContext对象
 
-web容器在启动的时候，它会为每个web程序都创建一个对应的ServletContext对象，它代表了当前的web应用
+web容器在启动的时候，它会为每个web程序都创建一个对应的ServletContext对象，**它代表了当前的web应用**
 
 #### 共享数据
 
@@ -213,6 +207,7 @@ ServletContext servletContext = this.getServletContext();
 // forward(req,resp)	刷新
 servletContext.getRequestDispatcher("/t2").forward(req,resp);
 // 也就是我访问的是 /t1, 但是页面上显示的是 /t2 的内容
+// "/t2"的"/"指的是项目根路径
 ~~~
 
 ~~~XML
@@ -270,7 +265,18 @@ web服务器接收到客户端的http请求，针对这个请求，分别创建�
 
 **如果要获取客户端请求过来的参数：使用 HttpServletRequest**
 
+#### 获取前端传递的参数
 
+~~~java
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    req.setCharacterEncoding("utf-8");				// 设置请求的编码
+    resp.setCharacterEncoding("utf-8");				// 设置返回的编码
+    String username = req.getParameter("username");	// 获取到前端的信息
+    String password = req.getParameter("password"); // 获取到前端的信息
+    System.out.println(username);
+    System.out.println(password);
+}
+~~~
 
 ## HttpServletResponse
 
@@ -340,6 +346,135 @@ protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws Se
 
 #### 重定向
 
+> 重定向的状态码是 302
+
 ~~~java
 resp.sendRedirect("/../..");	//路径要写全
 ~~~
+
+## 关于WEB-INF一些
+
+正常访问WEB-INF目录下的文件是访问不到的，用户不可见。
+
+**但是可以通过请求转发做到**
+
+## cookie
+
+- 客户端技术（数据在客户端）
+
+~~~java
+// 常用类，方法
+Cookie[] cookies = req.getCookies();	// 获取cookies
+cookie.getName();						// 获得cookie中的key
+cookie.getValue();						// 获得cookie中的value		
+Cookie cookie = new Cookie("name", "an你好");	// 新建一个cookie
+cookie.setMaxAge(60*60);				// 设置cookie 的有效期
+resp.addCookie(cookie);					// 响应一个cookie
+~~~
+
+~~~java
+resp.setContentType("text/html");	// 设置编码类型
+req.setCharacterEncoding("utf-8");
+resp.setCharacterEncoding("utf-8");
+// Cookie，这是服务器从客户端获取的cookie，是个数组，说明cookie不止一个
+Cookie[] cookies = req.getCookies();
+PrintWriter out = resp.getWriter();
+// 用来判断cookie 是否存在
+if (cookies != null){
+    out.write("上一次访问的时间是");
+    for (int i = 0; i < cookies.length; i++) {
+        Cookie cookie = cookies[i];
+        if (cookie.getName().equals("name")){
+            out.write(cookie.getValue());
+        }
+    }
+}else {
+    out.write("这是你第一次访问");
+}
+// 給客户端一个 cookie
+Cookie cookie = new Cookie("name", "an你好");
+resp.addCookie(cookie);
+//设置cookie存在时间
+cookie.setMaxAge(60*60);
+~~~
+
+## *session
+
+- 服务器技术，可以保存用户的信息
+- 服务器会给每个用户创建一个session（一个浏览器就算一个用户）
+
+~~~java
+// 常用类，方法
+getId()					// 获得唯一的标识符
+getServletContext()		// 获得整个Servelet的上下文
+getAttribute()			// 得到一个节点
+setAttribute()			// 设置一个节点
+removeAttribute()		// 移除一个节点
+isNew()					// 是否是新的 session
+invalidate()			// 注销(清掉这个session)
+~~~
+
+~~~java
+req.setCharacterEncoding("utf-8");
+resp.setContentType("text/html;charset=utf-8");
+resp.setCharacterEncoding("utf-8");
+//得到session
+HttpSession session = req.getSession();
+//給session存东西
+session.setAttribute("name","namenihao");
+// 获取session的id
+String id = session.getId();
+// 判断session 是不是新的
+if (session.isNew()){
+    resp.getWriter().println("创建成功了");
+}else{
+    resp.getWriter().write("已经存在，session为"+id);
+}
+~~~
+
+> session是可以传对象的
+
+~~~java
+//得到session
+HttpSession session = req.getSession();
+//給session存东西
+session.setAttribute("name",可以是个对象);
+~~~
+
+> 推测session创建的时候做了什么
+
+~~~java
+// 推测session创建的时候做了什么
+Cookie cookie = new Cookie("JSESSIONID",sessionId);
+resp.addCookie(cookie);
+~~~
+
+#### 注销session
+
+> 通过手动注销
+
+~~~java
+session.invalidate();
+~~~
+
+> web.xml 中配置
+
+~~~xml
+<!--设置session默认的失效时间-->
+<session-config>
+	<!--一天后session自动失效，以分钟为单位-->
+    <session-timeout>1440</session-timeout>
+</session-config>
+~~~
+
+#### session和cookie区别
+
+- cookie是吧用户的数据写给用户的浏览器，浏览器保存，可以保存多个
+- sessio把用户的数据写到用户独占session中，服务器端保存
+- session对象由服务器创建
+
+**使用场景：**
+
+- 保存一个登录用户的信息
+- 购物车信息
+- 在整个网站中经常会使用的数据，将其保存在session中

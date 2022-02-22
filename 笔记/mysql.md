@@ -88,28 +88,28 @@ update mysql.user set authentication_string=password('123456') where user='root'
 
 > 数值
 
-- tinyint			十分小的数据	1个字节
-- smallint          较小的数据        2个字节
-- int                   标准的整数        4个字节
-- bigint             较大的数据         8个字节
-- float               单精度浮点数      4个字节
-- double           双精度浮点数     8个字节
+- tinyint			十分小的数据	1个字节       java的Integer
+- smallint          较小的数据        2个字节       java的Integer
+- int                   标准的整数        4个字节       java的int
+- bigint             较大的数据         8个字节       java的long
+- float               单精度浮点数      4个字节      java的float
+- double           双精度浮点数     8个字节       java的double
 - decimal         字符串形式的浮点数   金融计算的时候，一般使用
 
-decimal(9,2)	 代表 整数 9 位，小数 2 位
+decimal(9,2)	 代表 整数 9 位，小数 2 位      **java.math.BigDecimal**
 
 > 字符串
 
-- char				  字符串固定的大小 		0~255
-- **varchar           可变字符串                    0~65535**     常用
-- tinytext             微型文本                       
-- text                    文本串                            保存大文本
+- char				  字符串固定的大小 		0~255                    java的String
+- **varchar           可变字符串                    0~65535**     常用    java的String
+- tinytext             微型文本                        
+- text                    文本串                            保存大文本            java的String
 
 > 时间日期
 
 - date					YYYY-MM-DD 			日期时间
 - time                     HH:mm:ss                 时间格式
-- **datetime             YYYY-MM-DD HH:mm:ss**   常用
+- **datetime             YYYY-MM-DD HH:mm:ss**   常用   java的Date
 - timestamp           时间戳              1970.1.1到现在的毫秒数  常用
 - year                       年份表示
 

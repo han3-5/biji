@@ -1,3 +1,11 @@
+## cmd编译出现GBK问题
+
+~~~bash
+#需要带上 -encoding UTF-8 参数
+javac xxx.java					# 之前
+javac -encoding UTF-8 xxx.java  # 改为
+~~~
+
 ## 可变参数
 
 > JDK1.5之后有的。支持传递同类型的可变参数給一个方法
