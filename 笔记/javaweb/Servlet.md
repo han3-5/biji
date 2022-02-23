@@ -454,7 +454,7 @@ resp.addCookie(cookie);
 > 通过手动注销
 
 ~~~java
-session.invalidate();
+session.invalidate();	// xml不要忘记配置
 ~~~
 
 > web.xml 中配置
@@ -467,7 +467,7 @@ session.invalidate();
 </session-config>
 ~~~
 
-#### session和cookie区别
+####  session和cookie区别
 
 - cookie是吧用户的数据写给用户的浏览器，浏览器保存，可以保存多个
 - sessio把用户的数据写到用户独占session中，服务器端保存
