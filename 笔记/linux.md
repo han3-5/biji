@@ -1,5 +1,11 @@
 > export PATH=/bin:/usr/bin:$PATH
 
+## linux下常用命令
+
+链接: https://pan.baidu.com/s/1s-hQrE-ZJXyWtaLHVpqZYg 提取码: 8jan 
+
+> **出处：B站up主CodeSheep**
+
 ## linux下安装配置一些环境
 
 链接: https://pan.baidu.com/s/1feC1ojz-VRGCKgPBBoDwAQ 提取码: 1aru

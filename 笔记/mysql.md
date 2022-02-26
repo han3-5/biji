@@ -468,6 +468,7 @@ select count(1) from `表名`		 -- 不会忽略null值，本质计算行数
 -- 执行效率
 -- 列名为主键，count(列名)比count(1)快
 -- 列名不为主键，count(1)比count(列名)快
+-- count(1) 只是查一列 count(*) 查询所有,所以count(1) 效率
 ~~~
 
 > sum()、avg()、max()、min()	求和、求平均、最大值、最小值

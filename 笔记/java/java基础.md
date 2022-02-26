@@ -52,7 +52,13 @@ void test([int x,]int... i){}
 #### valueOf()和parse…()的区别
 
 >1. parse…()返回值都为基本类型
->2. valueOf返回值都为对应的对象类型，且valueOf会调用parse…()
+>2. valueOf返回值为对象类型，且valueOf会调用parse…()
+
+~~~java
+String a = "123";
+int b = Integer.parseInt(a);		// 转换为基本类型
+Integer b = Integer.valuesOf(a);	// 转换成对象类型
+~~~
 
 ## 封装
 
