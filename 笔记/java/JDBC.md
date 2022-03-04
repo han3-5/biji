@@ -17,6 +17,7 @@
     6. 释放资源
 
 ~~~java
+// mysql8.0 可以需要设置时区 serverTimezone=
 String url = "jdbc:mysql://localhost:3306/school?useUnicode=true&characterEncoding=utf8&useSSl=true";
 //url = "jdbc:mysql://主机地址:端口/数据库?参数1&参数2···"
 //useUnicode = true		是否使用Unicode字符集					   默认false
