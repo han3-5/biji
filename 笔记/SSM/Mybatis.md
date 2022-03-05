@@ -1,5 +1,7 @@
 ## 简介
 
+> 如果这个世界总是这么简单就好了。
+
 - MyBatis 是一款优秀的**持久层框架**
 - 它支持自定义 SQL、存储过程以及高级映射
 - MyBatis 免除了几乎所有的 JDBC 代码以及设置参数和获取结果集的工作
@@ -89,6 +91,13 @@ public class MybatisUtils {
     public static SqlSession getSqlSession(){
         return sqlSessionFactory.openSession();
     }
+}
+~~~
+
+~~~java
+public static SqlSession getSqlSession(){
+    //设置true 后面的代码中可以不用手动提交事务
+    return sqlSessionFactory.openSession(true);
 }
 ~~~
 
@@ -724,10 +733,404 @@ STDOUT_LOGGING
 
 #### insert
 
+- 接口上写注解
 
+    ~~~java
+    // 插入
+    @Insert("insert into user(id,name,password) values (#{id},#{name},#{password})")
+    public int addUser(User user);
+    ~~~
+
+- 在核心文件上注册
+
+    ~~~xml
+    <!--只用注册就可以了，不用写mapper.xml配置文件-->
+    <mappers>
+        <mapper class="dao.UserMapper" />
+    </mappers>
+    ~~~
+
+- 测试
+
+    ~~~java
+    @Test
+    public void test2(){
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        mapper.addUser(new User(4,"aa","111"));
+        sqlSession.commit();
+        sqlSession.close();
+    }
+    ~~~
 
 #### update
 
+- 接口上写注解
 
+    ~~~java
+    // 更新
+    @Update("update user set name=#{name} where id=#{iid}")
+    public int updateUser(@Param("iid") int id,@Param("name")String name);
+    ~~~
+
+- 在核心文件上注册
+
+    ~~~xml
+    <!--只用注册就可以了，不用写mapper.xml配置文件-->
+    <mappers>
+        <mapper class="dao.UserMapper" />
+    </mappers>
+    ~~~
+
+- 测试
+
+    ~~~java
+    @Test
+    public void test3(){
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        mapper.updateUser(4,"bb");
+        sqlSession.commit();
+        sqlSession.close();
+    }
+    ~~~
 
 #### delete
+
+- 接口上写注解
+
+    ~~~java
+    // 删除
+    @Delete("delete from user where id = #{iid}")
+    public int deleteUser(@Param("iid")int id);
+    ~~~
+
+- 在核心文件上注册
+
+    ~~~xml
+    <!--只用注册就可以了，不用写mapper.xml配置文件-->
+    <mappers>
+        <mapper class="dao.UserMapper" />
+    </mappers>
+    ~~~
+
+- 测试
+
+    ~~~java
+    @Test
+    public void test4(){
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        mapper.deleteUser(4);
+        sqlSession.commit();
+        sqlSession.close();
+    }
+    ~~~
+
+**关于@Param()注解**
+
+- 基本类型的参数或者String类型，需要加上
+- 引用类型不用加
+- 如果只有一个基本类型，可以忽略，但最好加上
+- 在SQL语句中引用的就是@Param()中设定的属性名
+
+**#{} 和 ${} 区别**
+
+- ${} 不安全，防止不了sql 注入
+- #{} 是预编译，能用#{}就用#{}
+
+## 多对一
+
+#### 按照查询嵌套处理
+
+> 和sql中的子查询一样
+
+~~~xml
+<!--思路：
+    1. 查询所有的学生信息
+    2.根据查询出来的学生的tid，寻找对应的老师
+-->
+<select id="getStudent" resultMap="StudentTeacher">
+    select * from Student
+</select>
+<resultMap id="StudentTeacher" type="Student" >
+    <!--复杂的属性，我们需要单独处理 对象：association 集合：collection-->
+    <association property="teacher" column="tid" javaType="Teacher" select="getTeacher"/>
+</resultMap>
+<select id="getTeacher" resultType="Teacher">
+    select * from Teacher where id = #{tid}
+</select>
+~~~
+
+#### 按照结果嵌套处理
+
+> 和sql中的连表查询一样
+
+~~~xml
+<!--按照结果嵌套处理-->
+<select id="getStudent2" resultMap="StudentTeacher2">
+    select student.id sid,student.name sname,teacher.id ttid,teacher.name tname
+    from student,teacher where student.tid = teacher.id
+</select>
+<resultMap id="StudentTeacher2" type="Student">
+    <result property="id" column="sid" />
+    <result property="name" column="sname" />
+    <association property="teacher" javaType="Teacher">
+        <result property="id" column="ttid"/>   <!--这些地方要使用别名 teacher.id不可用-->
+        <result property="name" column="tname" />
+    </association>
+</resultMap>
+~~~
+
+## 一对多
+
+#### 按照查询嵌套处理
+
+~~~xml
+<!--    按照查询嵌套处理-->
+<select id="getTeacherId2" resultMap="TeacherStudent2">
+    select * from teacher where id = #{id}
+</select>
+<resultMap id="TeacherStudent2" type="Teacher">
+    <result property="id" column="id"/>
+    <collection property="students" ofType="Student" select="getStudentByTeacherId" column="id"/>
+</resultMap>
+<select id="getStudentByTeacherId" resultType="Student">
+    select * from student where tid = #{id}
+</select>
+~~~
+
+#### 按照结果嵌套处理
+
+~~~xml
+<!--    按照结果嵌套处理-->
+<select id="getTeacherId" resultMap="TeacherStudent">
+    select s.id sid,s.name sname,t.id tid,t.name tname
+    from student s,teacher t where tid = t.id and t.id = #{id};
+</select>
+<resultMap id="TeacherStudent" type="Teacher">
+    <result property="id" column="tid" />
+    <result property="name" column="tname" />
+    <!--
+            javaType="" 指定属性的类型
+            集合中的泛型信息，使用ofType获取
+        -->
+    <collection property="students" ofType="Student">
+        <result property="id" column="sid"/>
+        <result property="name" column="sname"/>
+        <result property="tid" column="tid"/>
+    </collection>
+</resultMap>
+~~~
+
+**JavaType  & ofType**
+
+- JavaType 用来指定实体类中的属性的类型
+- ofType 用来指定映射到List或者集合中的 pojo 类型，泛型中的约束类型
+
+## 动态sql
+
+**动态SQL就是根据不同的条件生成不同的SQL语句**
+
+#### *IF
+
+~~~xml
+<select id="getBlogIf" parameterType="map" resultType="pojo.Blog">
+    select * from blog
+    <where>
+        <if test="title != null">
+            and title = #{title}
+        </if>
+        <if test="author != null">
+            and author = #{author}
+        </if>
+    </where>
+</select>
+~~~
+
+#### 常用标签
+
+**choose（when，otherwise）**
+
+> 有时候，我们不想使用所有的条件，而只是想从多个条件中选择一个使用。针对这种情况，MyBatis 提供了 choose 元素，它有点像 Java 中的 switch 语句。
+
+~~~xml
+<!--如果第一个条件成立，会选择第一个，且不往下判断。如果when标签内都不成立，会自动拼接 otherwise-->
+<select id="getBlogIf" parameterType="map" resultType="pojo.Blog">
+    select * from blog
+    <where>
+      <choose>
+        <when test="title != null">
+          and title like #{title}
+        </when>
+        <when test="author != null">
+          and author like #{author}
+        </when>
+        <otherwise>
+          and views = #{views}
+        </otherwise>
+      </choose>
+    </where>
+</select>
+~~~
+
+**trim（where，set）**
+
+> *where* 元素只会在需要的时候才插入 “WHERE” 子句。而且，若子句的开头为 “AND” 或 “OR”，*where* 元素也会将它们去除。
+
+> *set* 元素会动态地在行首插入 SET 关键字，并会删掉额外的逗号
+
+~~~xml
+<update id="updateBlog" parameterType="map">
+    update blog
+    <set>
+        <if test="title != null">
+            title = #{title},
+        </if>
+        <if test="author != null">
+            author = #{author},
+        </if>
+    </set>
+    where views = 1000
+</update>
+~~~
+
+#### Foreach
+
+~~~xml
+<!--select * from blog where id in (1,2,3)-->
+<!--collection:集合，item：代表每一项，open:拼接开始的字符，close:拼接结束的字符，separator:分隔符-->
+<select id="queryBlogForeach" parameterType="map" resultType="pojo.Blog">
+    select * from blog
+    <where>
+        <foreach collection="ids" item="id" open="and id in (" close=")" separator=",">
+            #{id}
+        </foreach>
+    </where>
+</select>
+~~~
+
+~~~java
+@Test
+public void test4(){
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+    HashMap map = new HashMap();
+    List idsList = new ArrayList();
+    idsList.add(1);
+    idsList.add(2);
+    map.put("ids",idsList);
+    List<Blog> blogs = mapper.queryBlogForeach(map);
+    for (Blog blog : blogs) {
+        System.out.println(blog);
+    }
+    sqlSession.close();
+}
+~~~
+
+#### SQL 片段
+
+> 有些时候，可能将一些功能抽取出来，方便复用
+
+- 原来的语句
+
+    ~~~xml
+    <select id="getBlogIf" parameterType="map" resultType="pojo.Blog">
+        select * from blog
+        <where>
+            <if test="title != null">
+                and title = #{title}
+            </if>
+            <if test="author != null">
+                and author = #{author}
+            </if>
+        </where>
+    </select>
+    ~~~
+
+- 使用SQL标签抽取公共的部分
+
+    ~~~xml
+    <sql id="test">
+        <if test="title != null">
+            and title = #{title}
+        </if>
+        <if test="author != null">
+            and author = #{author}
+        </if>
+    </sql>
+    ~~~
+
+- 在需要使用的地方使用 **include** 标签引用即可
+
+    ~~~xml
+    <select id="getBlogIf" parameterType="map" resultType="pojo.Blog">
+        select * from blog
+        <where>
+            <include refid="test"></include>
+        </where>
+    </select>
+    ~~~
+
+sql片段使用注意事项：
+
+- 最好基于单表来定义SQL片段（复杂的也没法复用）
+- 不要包含存在where 标签，可能会出bug
+
+## 缓存
+
+#### 一级缓存
+
+- 一级缓存也叫本地缓存：
+
+    - 与数据库同一次会话期间查询到的数据会放在本地缓存中
+    - 下次如果需要相同的数据，会直接从缓存中取
+
+- 缓存失效的情况：
+
+    - 映射语句文件中的所有 select 语句的结果将会被缓存
+
+    - 映射语句文件中的所有 insert、update 和 delete 语句会刷新缓存
+
+    - 缓存会使用最近最少使用算法（LRU, Least Recently Used）算法来清除不需要的缓存
+
+    - 缓存不会定时进行刷新（也就是说，没有刷新间隔）
+
+    - 手动清理缓存
+
+        ~~~java
+        sqlSession.clearCache();	// 手动清理缓存
+        ~~~
+
+一级缓存默认是开启的，只在一次SqlSession中有效，也就是拿到连接到关闭连接这个区间段
+
+#### 二级缓存
+
+[MyBatis 3二级缓存](https://mybatis.org/mybatis-3/zh/sqlmap-xml.html#cache)
+
+- 二级缓存也叫全局缓存，一级缓存作用域太低了
+- 基于namespace级别的缓存，一个名称空间，对应一个二级缓存
+- 工作机制
+    - 一个会话查询一条数据，这个数据会被放到当前会话的一级缓存中
+    - 如果当前会话关闭了，对应的一级缓存就没了， 我们可以设置，会话关闭了，一级缓存的数据可以保存到二级缓存中
+    - 新的会话查询信息，就可以从二级缓存中获取内容
+    - 不同的mapper查出的数据会放在自己对应的缓存中
+
+步骤：
+
+1. 开启全局缓存
+
+    ~~~xml
+    <setting name="cacheEnabled" value="true"/>
+    ~~~
+
+2. 要使用二级缓存的Mapper中开启
+
+    ~~~xml
+    <!--参数解释见官方文档-->
+    <cache
+      eviction="FIFO"
+      flushInterval="60000"
+      size="512"
+      readOnly="true"/>
+    ~~~
