@@ -172,6 +172,82 @@ mv 文件名 文件名2
 
 > make  会扫描 Makefile 找到目标及其依赖
 
+## 环境变量
+
+#### 查看环境变量
+
+> env 命令
+
+- env | grep 环境变量名	 用来查看指定环境变量
+- echo $环境变量名             等同于上面
+
+#### 常用环境变量
+
+- PATH ：可执行程序包含Linux系统命令和用户的应用程序
+- LANG：Linux系统的语言、地区、字符集
+- HOSTNAME：服务器的主机名
+- SHELL： 用户当前使用的shell解析器
+- HISTSIZE：保存历史命令的数目
+- USER：当前登录用户的用户名
+- LD_LIBRARY_PATH：c/c++语言动态链接库文件搜索的目录
+- CLASSPATH：JAVA语言库文件搜索的目录
+
+#### 设置环境变量
+
+~~~bash
+# 如果环境变量中没有空格等特殊符号，可以不加单引号
+变量名='值'
+export 变量名  	# 把环境变量加载
+# 或者改成以下写法
+export 变量名='值'
+~~~
+
+> 采用export设置的环境变量，在退出Shell后就会失效
+
+**系统环境变量**
+
+- 在/etc/profile文件中设置（不建议）
+- 在**/etc/profile.d**目录中添加环境变量脚本（推荐）
+- 在/etc/bashrc文件中设置（不建议）
+
+**用户环境变量**
+
+> 用户环境变量只对当前用户生效。使用 ls /home/xxx/.bash* 查看
+
+- .bash_profile （建议）
+- .bashrc
+- .bash_logout ：每次退出系统(退出bash shell) 时会执行改文件
+- .bash_history：保存当前用户使用过的历史命令
+
+**建议：**系统的环境变量放在 /etc/profile.d 中配置. 用户的环境变量放在.bash_profile 中配置
+
+**环境变量执行顺序**
+
+> 如果存在同名的环境变量，在多个脚本中有配置，以最后执行的脚本配置为准
+
+/ect/profile -> /etc/profile.d -> /etc/bashrc -> 用户的,bash_profile -> 用户的 .bashrc
+
+/etc/profile 里面会调用 /etc/profile.d 文件，所以具体执行顺序要看代码写在执行前还是执行后
+
+**使环境变量生效**
+
+- 退出重新进，就生效了
+- 使用 **source** /etc/profile 来生效、
+
+#### 重要环境变变量
+
+**PATH 环境变量**
+
+可执行程序的搜索目录，包括linux系统命令和用户的应用程序。如果可执行程序的目录不在PATH指定的目录中，执行时需要指定目录
+
+- PATH环境变量存放的是目录列表，目录之间用冒号（:）分割，
+
+**LANG环境变量**
+
+存在linux系统的语言，地区，字符集
+
+CentOS7.x 字符集配置文件在/ect/locale.conf 文件中 
+
 ## 文件属性
 
 linux 中文件属性第一个字符代表的含义
