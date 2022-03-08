@@ -532,3 +532,77 @@ xml 和 注解：
 
 #### 使用Java的方式配置Spring
 
+不使用Spring的xml配置，由Java来做
+
+JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
+
+- 实体类
+
+    ~~~java
+    public class User {
+        private String name;
+        public String getName() {
+            return name;
+        }
+        @Value("z")
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+    ~~~
+
+- JavaConfig
+
+    ~~~java
+    // @Configuration 代表这是一个配置类，和之前配置的 .xml<beans> 一样
+    @Configuration  // 这个也会被Spring容器托管，注册到容器中，因为它本来就是一个@Component
+    //@Import(xxx.class)  // 可以将别的@Configuration 类导入进来
+    public class ZConfig {
+    
+        // 注册一个bean ，相当于之前写的<bean />
+        // 方法的名字，相当于bean标签中的id属性
+        // 方法的返回值，相当于bean标签中的class属性
+        @Bean   // @Bean(name = "可以起别名")
+        public User getUser(){
+            return new User();  // 返回要注入到bean的对象
+        }
+    }
+    ~~~
+
+- 测试
+
+    ~~~java
+    public class MyTest {
+        public static void main(String[] args) {
+            ApplicationContext context = new AnnotationConfigApplicationContext(ZConfig.class);
+            User bean = (User) context.getBean("getUser");
+            System.out.println(bean.getName());
+        }
+    }
+    ~~~
+
+## 代理模式
+
+这是Spring AOP底层
+
+#### 静态代理
+
+- 抽象角色：一般会使用接口或者抽象类来表示
+- 真实角色：被代理的角色
+- 代理角色：代理真实的角色，代理后，会有一些附属的操作
+- 客户：访问代理对象的人
+
+**静态代理**好处：
+
+- 可以使真实角色的操作更加纯粹，不用去关注一些公共的业务
+- 公共的业务交给代理的角色，实现了业务的分工
+- 公共业务发生扩展的时候，方便集中管理
+
+缺点：
+
+- 一个真实角色就会产生一个代理角色；代码量会翻倍，开发效率降低
+
+#### 动态代理
+
+> 全靠反射
+
