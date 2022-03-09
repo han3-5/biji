@@ -483,8 +483,7 @@ class People{
 - @Component：组件，放在类上，说明这个类被Spring管理了
 
     ~~~java
-    // 等价于     <bean id="user" class="pojo.User"/>
-    @Component
+    @Component // 等价于 <bean id="user" class="pojo.User"/>
     public class User {
         // 代码...
     }
@@ -592,7 +591,7 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
 - 代理角色：代理真实的角色，代理后，会有一些附属的操作
 - 客户：访问代理对象的人
 
-**静态代理**好处：
+静态代理好处：
 
 - 可以使真实角色的操作更加纯粹，不用去关注一些公共的业务
 - 公共的业务交给代理的角色，实现了业务的分工
@@ -605,4 +604,339 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
 #### 动态代理
 
 > 全靠反射
+
+- 动态代理和静态代理角色一样
+- 动态代理的代理类是动态生成的，不是直接写好
+- 动态代理分为两大类：基于接口的动态代理，基于类的动态代理
+    - 基于接口 -- JDK 动态代理
+    - 基于类：cglib
+    - java字节码实现：javasist
+
+需要了解两个类： **Proxy** （代理）和 **InvocationHandler**（调用处理程序）
+
+**Proxy 用来生成动态代理实例**
+
+**InvocationHandler 用来条用处理程序并返回结果**
+
+- 抽象角色：一般会使用接口或者抽象类来表示
+
+    ~~~java
+    public interface Rent {
+        public void rent();
+    }
+    ~~~
+
+- 真实角色：被代理的角色
+
+    ~~~java
+    // 房东
+    public class Host implements Rent{
+        @Override
+        public void rent() {
+            System.out.println("房东出租房子");
+        }
+    }
+    ~~~
+
+- 代理角色：代理真实的角色，代理后，会有一些附属的操作
+
+    ~~~java
+    // 用这个类，自动生成代理类
+    public class ProxyInvocationHandler implements InvocationHandler {
+        // 被代理的接口
+        private Rent rent;
+        public void setRent(Rent rent){
+            this.rent = rent;
+        }
+        // 生成得到代理类
+        public Object getProxy(){
+            return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+                                          rent.getClass().getInterfaces(),
+                                          this);
+        }
+        // 处理代理实例，并返回结果
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            log(method.getName());  // 在执行代理对象方法前执行的一个附属操作
+            // 动态代理的本质，就是使用反射机制
+            Object result = method.invoke(rent, args);
+            return result;
+        }
+        // 想增加一个附属操作
+        public void log(String msg){
+            System.out.println("执行了"+msg+"方法");
+        }
+    }
+    ~~~
+
+- 客户：访问代理对象的人
+
+    ~~~java
+    // 客户
+    public class Client{
+        public static void main(String[] args) {
+            // 真实角色
+            Host host = new Host();
+    
+            // 代理角色
+            ProxyInvocationHandler proxyInvocationHandler = new ProxyInvocationHandler();
+            // 通过调用程序处理角色来处理要调用的接口对象
+            proxyInvocationHandler.setRent(host);
+            // 这里的proxy 就是动态生成的
+            Rent proxy = (Rent) proxyInvocationHandler.getProxy();
+            proxy.rent();
+        }
+    }
+    ~~~
+
+动态代理的好处
+
+- 有静态代理的所有好处
+- 一个动态代理类代理的是一个接口，一般就是对应的一类业务
+- 一个动态代理类可以代理多个类，只要是实现了同一个接口即可
+
+## AOP
+
+> aop 意味 面向切面编程，通过预编译方式和运行期动态代理实现程序功能的统一维护的一种技术
+
+- 横切关注点：与业务逻辑无关，但需要关注的部分。如：日志，安全，缓存，事务等
+- 切面（ASPECT）：横切关注点被模块化的特殊对象，是一个类
+- 通知（Adivce）：切面必须要完成的工作，是类中的一个方法
+- 目标（target）： 被通知的对象
+- 代理（Proxy）： 向目标对象应用通知之后创建的对象
+- 切入点（Pointcut）：切面通知执行的"地点"
+- 连接点（JointPoint）：与切入点匹配的执行点
+
+#### Spring 实现 AOP
+
+导包
+
+~~~xml
+<!-- https://mvnrepository.com/artifact/org.aspectj/aspectjweaver -->
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.6</version>
+</dependency>
+~~~
+
+#### **方法一**：使用Spring原生API 实现
+
+> 主要是SpringApi接口实现
+
+- 接口与实现类
+
+    ~~~java
+    public interface UserService {
+        public void add();
+    }
+    public class UserServiceImpl implements UserService{
+        @Override
+        public void add() {
+            System.out.println("增加了一个用户");
+        }
+    }
+    ~~~
+
+- 想切入的（切面）
+
+    ~~~java
+    package log;
+    import org.springframework.aop.MethodBeforeAdvice;
+    import java.lang.reflect.Method;
+    public class Log implements MethodBeforeAdvice {
+        // method ：要执行的目标对象的方法
+        // args： 参数
+        // target ：目标对象
+        @Override
+        public void before(Method method, Object[] args, Object target) throws Throwable {
+            System.out.println(method.getName()+"被执行了");
+        }
+    }
+    ~~~
+
+    ~~~java
+    package log;
+    import org.springframework.aop.AfterReturningAdvice;
+    import java.lang.reflect.Method;
+    public class AfterLog implements AfterReturningAdvice {
+        // returnValue：返回值
+        @Override
+        public void afterReturning(Object returnValue, Method method, Object[] args, Object target) throws Throwable {
+            System.out.println("执行了"+method.getName()+"方法，返回结果为："+returnValue);
+        }
+    }
+    ~~~
+
+- 注册bean，实现aop
+
+    ~~~xml
+    <!--aop约束-->
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    http://www.springframework.org/schema/aop
+    https://www.springframework.org/schema/aop/spring-aop.xsd
+    ~~~
+
+    ~~~xml
+    <!--注册bean-->
+    <bean id="userService" class="service.UserServiceImpl"/>
+    <bean id="log" class="log.Log"/>
+    <bean id="afterLog" class="log.AfterLog"/>
+    <!--方式一：使用原生Spring API接口-->
+    <!--配置aop:需要导入aop的约束-->
+    <aop:config>
+        <!--切入点:id="名字" expression:表达式 execution(要执行的位置)-->
+        <!--execution(修饰符 返回值 包.类.方法名(参数) throws异常) 【返回值方法名(参数)】不能省略-->
+        <aop:pointcut id="pointcut123" expression="execution(* service.UserServiceImpl.*(..))"/>
+        <!--执行环绕增加,advice-ref="将这个类"切入到pointcut-ref="待切入的类"-->
+        <aop:advisor advice-ref="log" pointcut-ref="pointcut123"/>
+        <aop:advisor advice-ref="afterLog" pointcut-ref="pointcut123"/>
+    </aop:config>
+    ~~~
+
+- 测试
+
+    ~~~java
+    public class MytTest {
+        public static void main(String[] args) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+            // 注意：动态代理 代理的是接口
+            UserService userService = (UserService) context.getBean("userService");
+            userService.add();
+        }
+    }
+    ~~~
+
+#### 方法二：自定义
+
+> 主要是切面的定义
+
+- 想切入的（切面）
+
+    ~~~java
+    public class DiyPointCut {
+        public void before(){
+            System.out.println("方法执行前...");
+        }
+        public void after(){
+            System.out.println("方法执行后...");
+        }
+    }
+    ~~~
+
+- 注册bean，实现aop
+
+    ~~~xml
+    <!--aop约束-->
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    http://www.springframework.org/schema/aop
+    https://www.springframework.org/schema/aop/spring-aop.xsd
+    ~~~
+
+    ~~~xml
+    <!--注册bean-->
+    <bean id="diy" class="div.DiyPointCut"/>
+    <!--方式二：自定义-->
+    <aop:config>
+        <!--自定义切面 ref="要引用的类"-->
+        <aop:aspect ref="diy">
+            <!--切入点-->
+            <aop:pointcut id="pointcut123" expression="execution(* service.UserServiceImpl.*(..))"/>
+            <!--通知--><!--pointcut-ref="待切入点"-->
+            <aop:before method="before" pointcut-ref="pointcut123"/>
+            <aop:after method="after" pointcut-ref="pointcut123"/>
+        </aop:aspect>
+    </aop:config>
+    ~~~
+
+- 其余同方法一
+
+#### 使用注解实现
+
+- 想切入的（切面）
+
+    ~~~java
+    import org.aspectj.lang.annotation.*; 	// 包不要导错
+    @Aspect     // 标注这个类是一个切面
+    public class AnnotationPointCut {
+        @Before("execution(* service.UserServiceImpl.*(..))")
+        public void before(){
+            System.out.println("方法执行前...");
+        }
+        @After("execution(* service.UserServiceImpl.*(..))")
+        public void after(){
+            System.out.println("方法执行后...");
+        }
+    }
+    ~~~
+
+- 注册bean，实现aop
+
+    ~~~xml
+    <!--方式三：使用注解-->
+    <bean id="xxx" class="div.AnnotationPointCut"/>
+    <!--开启注解支持-->
+    <aop:aspectj-autoproxy/>
+    ~~~
+
+- 使用注解实现类似自定义
+
+## 整合Mybatis
+
+1. 导入相关的jar包
+
+    - junit
+    - mybatis
+    - mysql数据库
+    - spring相关的
+    - aspectjweaver
+    - mybatis-spring
+
+    ~~~xml
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.27</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>5.3.15</version>
+        </dependency>
+        <!--Spring 操作数据库-->
+        <!-- https://mvnrepository.com/artifact/org.springframework/spring-jdbc -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>5.3.15</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.6</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mybatis/mybatis-spring -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+    </dependencies>
+    ~~~
+
+2. 配置文件
+
+3. 测试
 

@@ -592,7 +592,7 @@ logImpl
 - 起别名
 
 ~~~xml
-<select id="getUserList" resultType="User">
+<select id="getUserList" resultType="pojo.User">
     select id,name,password as pwd from user
 </select>
 ~~~
@@ -601,7 +601,7 @@ logImpl
 
 ~~~xml
 <!--结果集映射 id 代表select标签中的resultMap值，type代表之前你的resultType，也就是结果的返回类型-->
-<resultMap id="UserMap" type="User">
+<resultMap id="UserMap" type="pUser">
     <!--column数据库中的字段，property实体类中的属性-->
     <!-- 可以只改不一样的-->
     <!-- <result column="id" property="id"/>-->
