@@ -883,6 +883,8 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
 
 ## 整合Mybatis
 
+[mybatis-spring –](http://mybatis.org/spring/zh/index.html)
+
 1. 导入相关的jar包
 
     - junit
@@ -936,7 +938,249 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
     </dependencies>
     ~~~
 
-2. 配置文件
+- 编写mybatis接口的xml
 
-3. 测试
+    ~~~xml
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <!DOCTYPE mapper
+            PUBLIC "-//mybatis.org//DTD mapper 3.0//EN"
+            "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="dao.UserDao">
+        <resultMap id="t" type="pojo.User">
+            <result property="pwd" column="password"/>
+        </resultMap>
+        <select id="selectUser"  resultMap="t">
+            select * from user
+        </select>
+    </mapper>
+    ~~~
 
+- 编写数据源配置
+
+    ~~~xml
+    <!--DataSource：使用Spring的数据源替换Mybatis的配置
+            这里使用Spring提供的JDBC
+        -->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver" />
+        <property name="url" value="jdbc:mysql://localhost:3306/mybatis?useUnicode=true&amp;characterEncoding=utf-8" />
+        <property name="username" value="root" />
+        <property name="password" value="123456" />
+    </bean>
+    ~~~
+
+- SqlSessionFactory
+
+    ~~~xml
+    <!--SQLSessionFactory-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <!--绑定Mybatis配置文件-->
+        <property name="configLocation" value="classpath:mybatis.xml" />
+        <property name="mapperLocations" value="classpath:dao/UserDao.xml" />
+    </bean>
+    ~~~
+
+- SqlSessionTemplate
+
+    ~~~xml
+    <!--SqlSessionTemplate:就是我们使用的sqlSession-->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate ">
+        <!--只能使用构造器注入sqlSessionFactory-->
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory" />
+    </bean>
+    ~~~
+
+- 给接口加实现类【比Mybatis多的一步】
+
+    ~~~java
+    public class UserDaoImpl implements UserDao {
+    
+        // 之前所有操作，使用SqlSession. 现在使用SqlSessionTemplate
+        private SqlSessionTemplate sqlSession;
+    
+        public void setSqlSession(SqlSessionTemplate sqlSession) {
+            this.sqlSession = sqlSession;
+        }
+    
+        @Override
+        public List<User> selectUser() {
+            UserDao mapper = sqlSession.getMapper(UserDao.class);
+            return mapper.selectUser();
+        }
+    }
+    ~~~
+
+- 将实现类注入到Spring中
+
+    ~~~xml
+    <!--注入bean-->
+    <bean id="user" class="dao.UserDaoImpl">
+        <property name="sqlSession" ref="sqlSession" />
+    </bean>
+    ~~~
+
+- 测试
+
+    ~~~java
+    public void test() throws IOException {
+        ApplicationContext context = new ClassPathXmlApplicationContext("spring-dao.xml");
+        UserDao user = (UserDao) context.getBean("user");
+        List<User> users = user.selectUser();
+        for (User user1 : users) {
+            System.out.println(user1);
+        }
+    }
+    ~~~
+
+**方法二：** 不使用SqlSessionTemplate，使用SqlSessionDaoSupport
+
+- 省略SqlSessionTemplate的配置，其他一致
+
+- 给接口加实体类
+
+    ~~~java
+    public class UserDaoImpl2 extends SqlSessionDaoSupport implements UserDao{
+        @Override
+        public List<User> selectUser() {
+            return getSqlSession().getMapper(UserDao.class).selectUser();
+        }
+    }
+    ~~~
+
+- 将实现类注入到Spring中
+
+    ~~~xml
+    <bean id="user2" class="dao.UserDaoImpl2">
+        <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
+    </bean>
+    ~~~
+
+## 事务管理
+
+事务ACID原则：
+
+- 原子性
+    - 要么都成功，要么都失败
+- 一致性
+    - 比如转账，执行前后总金额不能改变，前后一致
+- 隔离性
+    - 多个事务可能操作同一资源，相互隔离
+- 持久性
+    - 事务一旦提交，结果不能被影响，被持久化写到存储器中
+
+#### 声明式事务
+
+- 声明式事务：AOP
+- 编程式事务：需要在代码中，进行事务的管理
+
+**准备工作**
+
+- 接口
+
+    ~~~java
+    public interface UserDao {
+        public int insertUser(User  user);
+        public int deleteUser(int id);
+        public void test1();
+    }
+    ~~~
+
+- 实现类
+
+    ~~~java
+    public class UserDaoImpl extends SqlSessionDaoSupport implements UserDao {
+        @Override
+        public int insertUser(User user) {
+            return getSqlSession().getMapper(UserDao.class).insertUser(user);
+        }
+        @Override
+        public int deleteUser(int id) {
+            return getSqlSession().getMapper(UserDao.class).deleteUser(id);
+        }
+        public void test1(){
+            User user = new User(5,"小王","123");
+            UserDao mapper = getSqlSession().getMapper(UserDao.class);
+            mapper.insertUser(user);
+            mapper.deleteUser(1);
+        }
+    }
+    ~~~
+
+- mybatis 的xml配置
+
+    ~~~xml
+    <insert id="insertUser" parameterType="pojo.User">
+        insert into user(id,name,password) values(#{id},#{name},#{pwd})
+    </insert>
+    
+    <delete id="deleteUser">
+        delet from user where id = #{id}
+    </delete>
+    ~~~
+
+- spring整合mybatis
+
+**事务的配置**
+
+- 需要添加 事务和AOP的约束
+
+    ~~~xml
+    xmlns:tx="http://www.springframework.org/schema/tx" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx.xsd
+    http://www.springframework.org/schema/aop
+    https://www.springframework.org/schema/aop/spring-aop.xsd
+    ~~~
+
+- 事务的具体配置
+
+    ~~~xml
+    <!--配置声明式事务,官网的，必须要有-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+    <!--结合AOP实现事务的织入-->
+    <!--配置事务的通知：-->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <!--给哪些方法配置事务-->
+        <!--配置事务的传播特性:propagation
+            REQUIRED:支持当前事务，如果没有当前事务就新建一个事务
+            -->
+        <tx:attributes>
+            <tx:method name="test1" propagation="REQUIRED"/>
+        </tx:attributes>
+    </tx:advice>
+    <!--配置事务切入-->
+    <aop:config>
+        <aop:pointcut id="txPointCut" expression="execution(* dao.*.*(..))"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointCut"/>
+    </aop:config>
+    ~~~
+
+- 测试
+
+    ~~~java
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    UserDao userDao = context.getBean("user", UserDao.class);
+    userDao.test1();
+    ~~~
+
+#### Spring中事务的传播性（Propagation）
+
+- **REQUIRED**：支持当前事务，如果当前没有事务，就新建一个事务。这是最常见的选择。 
+
+- **SUPPORTS**：支持当前事务，如果当前没有事务，就以非事务方式执行。 
+
+- **MANDATORY**：支持当前事务，如果当前没有事务，就抛出异常。 
+
+- **REQUIRES_NEW**：新建事务，如果当前存在事务，把当前事务挂起。 
+
+- **NOT_SUPPORTED**：以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。 
+
+- **NEVER**：以非事务方式执行，如果当前存在事务，则抛出异常。 
+
+- **NESTED**：支持当前事务，如果当前事务存在，则执行一个嵌套事务，如果当前没有事务，就新建一个事务。
+
+一种有七种，基本上只用 REQUIRED

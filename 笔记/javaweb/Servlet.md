@@ -43,7 +43,7 @@ Servlet（Server Applet）是服务连接器，用Java编写的服务器端程�
 
 #### 运行机制
 
-浏览器发送一个HTTP请求，HTTP请求由Web容器（例如Tomcat服务器）。Tomcat作为Servlet/JSP 容器，负责处理客户请求，把请求传给Servlet，并将Servlet的响应传送回来
+浏览器发送一个HTTP请求，HTTP请求由Web容器（例如Tomcat服务器）接收，服务器根据URL执行指定的Servlet，Servlet处理请求然后响应数据
 
 ## HelloServlet
 
