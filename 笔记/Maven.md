@@ -116,7 +116,7 @@ maven由于他的约定大于配置，我们之后可以能遇到我们写的配
                 <include>**/*.properties</include>
                 <include>**/*.xml</include>
             </includes>
-            <filtering>tru</filtering>
+            <filtering>true</filtering>
         </resource>
     </resources>
 </build>

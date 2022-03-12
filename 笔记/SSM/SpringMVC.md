@@ -580,3 +580,134 @@ public class RestFulController {
     </filter-mapping>
     ~~~
 
+## JSON
+
+> 一种轻量级的数据交换格式
+
+#### Jackson
+
+> json解析工具
+
+导包
+
+~~~xml
+<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.13.2</version>
+</dependency>
+
+~~~
+
+- 编写Controller
+
+    ~~~java
+    @Controller
+    public class UserController {
+        @RequestMapping( "/t1")
+        @ResponseBody   // 不让视图解析器解析
+        public String test1(Model model) throws JsonProcessingException {
+            //创建一个jackson的对象映射器，用来解析数据
+            ObjectMapper mapper = new ObjectMapper();
+            User user = new User(1,"张",123);
+            // 将对象解析成Json格式
+            String str = mapper.writeValueAsString(user);
+            return str;
+        }
+    }
+    ~~~
+    
+- 解决 Json会乱码
+
+    ~~~java
+    @Controller
+    public class UserController {
+    
+        @RequestMapping(value = "/t1",produces = "application/json;charset=utf-8")	// 修改json不乱码
+        @ResponseBody   // 不让视图解析器解析
+        public String test1(Model model) throws JsonProcessingException {
+            //创建一个jackson的对象映射器，用来解析数据
+            ObjectMapper mapper = new ObjectMapper();
+            User user = new User(1,"张",123);
+            // 将对象解析成Json格式
+            String str = mapper.writeValueAsString(user);
+            return str;
+        }
+    }
+    ~~~
+
+    ~~~java
+    @RestController
+    public class UserController {
+    	// 代码....
+    }
+    // @RestController = @Controller + @ResponseBody 的效果
+    ~~~
+
+- 配置 springmvcxxx.xml 统一解决Json乱码
+
+    ~~~xml
+    <!--开启mvc注解驱动,并解决Json乱码-->
+    <mvc:annotation-driven>
+        <mvc:message-converters register-defaults="true">
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <constructor-arg value="UTF-8"/>
+            </bean>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+                        <property name="failOnEmptyBeans" value="false"/>
+                    </bean>
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+    ~~~
+
+
+**输出时间**
+
+- Java 方式
+
+    ~~~java
+    @RestController // @RestController = @Controller + @ResponseBody 的效果
+    public class UserController {
+        @RequestMapping( "/t1")
+        public String test1() throws JsonProcessingException {
+            //创建一个jackson的对象映射器，用来解析数据
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = new Date();
+            // 将对象解析成Json格式
+            String str = mapper.writeValueAsString(simpleDateFormat.format(date));
+            return str;
+        }
+    }
+    ~~~
+
+- 取消 timestamps (时间戳)形式
+
+    ~~~java
+    @RestController // @RestController = @Controller + @ResponseBody 的效果
+    public class UserController {
+        @RequestMapping("/t2")
+        public String test2() throws JsonProcessingException {
+            ObjectMapper mapper = new ObjectMapper();
+            //不使用时间戳的方式
+            mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+            //自定义日期格式对象
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            //指定日期格式
+            mapper.setDateFormat(sdf);
+            Date date = new Date();
+            String str = mapper.writeValueAsString(date);
+            return str;
+        }
+    }
+    ~~~
+
+#### fastjson
+
+> fastjson 是阿里巴巴开发的方便用于 Json 对象与 JavaBean 互相转换
+
