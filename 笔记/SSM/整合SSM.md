@@ -273,5 +273,151 @@
     </bean>
     ~~~
 
-## CRUD
+## CRUD Controller和视图层编写
+
+#### 查
+
+- index.jsp 编写
+
+    ~~~jsp
+    <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+    <html>
+        <head>
+            <title>$Title$</title>
+        </head>
+        <body>
+            <a href="${pageContext.request.contextPath}/allBook">进入图书列表界面</a>
+        </body>
+    </html>
+    ~~~
+
+- 书籍列表页面 allBook.jsp
+
+    ~~~jsp
+    <body>
+        <table>
+            <thead>
+                <tr>
+                    <th>书籍编号</th>
+                    <th>书籍名字</th>
+                    <th>书籍数量</th>
+                    <th>书籍详情</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                <c:forEach var="book" items="${requestScope.get('list')}">
+                    <tr>
+                        <td>${book.getBookID()}</td>
+                        <td>${book.getBookName()}</td>
+                        <td>${book.getBookCounts()}</td>
+                        <td>${book.getDetail()}</td>
+                        <td>
+                            <a href="${pageContext.request.contextPath}/toUpdate?id=${book.getBookID()}">更改</a> |
+                            <a href="${pageContext.request.contextPath}/del/${book.getBookID()}">删除</a>
+                        </td>
+                    </tr>
+                </c:forEach>
+            </tbody>
+        </table>
+    </body>
+    ~~~
+
+- Controller 层编写
+
+    ~~~java
+    @Controller
+    public class BookController {
+        // controller 调用 service 层
+        @Autowired
+        private BookService bookService;
+    
+        // 查询全部的书籍
+        @RequestMapping("/allBook")
+        public String list(Model model){
+            List<Books> list = bookService.queryAllBook();
+            System.out.println(list);
+            model.addAttribute("list",list);
+            return "allBook";
+        }
+    }
+    ~~~
+
+#### 加
+
+- 编写添加界面 addBook.jsp
+
+    ~~~jsp
+    <body>
+        <form action="${pageContext.request.contextPath}/addBook" method="post">
+            书籍名称：<input type="text" name="bookName"><br><br><br>
+            书籍数量：<input type="text" name="bookCounts"><br><br><br>
+            书籍详情：<input type="text" name="detail"><br><br><br>
+            <input type="submit" value="添加">
+        </form>
+    </body>
+    ~~~
+
+- Controller 层编写
+
+    ~~~java
+    // 添加书籍    
+    // 跳转到添加书籍界面
+    @RequestMapping("/toAddBook")
+    public String toAddPage(){
+        return "addBook";	  // 要是用后台过去，因为目录在WEB-INF下
+    }
+    @RequestMapping("/addBook")
+    public String addBook(Books books){
+        bookService.addBook(books);
+        return "redirect:/allBook";  // 此处要用重定向，不然会过不去
+    }
+    ~~~
+
+#### 改
+
+- 更新书籍界面 updateBook.jsp
+
+    ~~~jsp
+    <form action="${pageContext.request.contextPath}/updateBook" method="post">
+        <input type="hidden" name="bookID" value="${book.getBookID()}"/>
+        书籍名称：<input type="text" name="bookName" value="${book.getBookName()}"/>
+        书籍数量：<input type="text" name="bookCounts" value="${book.getBookCounts()}"/>
+        书籍详情：<input type="text" name="detail" value="${book.getDetail() }"/>
+        <input type="submit" value="提交"/>
+    </form>
+    ~~~
+
+- Controller 层编写
+
+    ~~~java
+    // 更改书籍
+    // 跳转到更改界面
+    @RequestMapping("/toUpdate")
+    public String toUpdateBook(Model model,int id){
+        Books book = bookService.queryBookById(id);
+        model.addAttribute("book",book);
+        return "updateBook";
+    }
+    // 更改书籍
+    @RequestMapping("/updateBook")
+    public String updateBook(Books books){
+        bookService.updateBook(books);
+        return "redirect:/allBook";  // 此处要用重定向，不然会过不去
+    }
+    ~~~
+
+#### 删
+
+- Controller 层编写
+
+    ~~~java
+    // 删除书籍
+    @RequestMapping("/del/{id}")
+    public String deleteBook(@PathVariable("id") int id){   //RestFul风格
+        bookService.delBookById(id);
+        return "redirect:/allBook";  // 此处要用重定向，不然会过不去
+    }
+    ~~~
 

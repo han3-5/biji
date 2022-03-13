@@ -38,3 +38,48 @@ var json = JSON.stringify({a:'hello',b:'world'});	// 结果是{"a":"hello","b":"
 
 在无需重新加载整个页面的情况下，能够更新部分页面的技术
 
+- 可以通过前端的 < iframe>  来伪造一个Ajax
+- Ajax的核心是 XMLHttpRequest 对象(XHR)，XHR为 向服务器发送请求和解析服务器响应提供了接口，能以异步方式从服务器获取新数据
+
+#### jQuery.ajax
+
+- jQuery 提供多个与 ajax 有关的方法
+- jQuery Ajax 本质就是 XMLHttpRequest，对其进行了封装
+
+~~~js
+jQuery.ajax(...)
+      部分参数：
+            url：请求地址
+            type：请求方式，GET、POST（1.9.0之后用method）
+        headers：请求头
+            data：要发送的数据
+    contentType：即将发送信息至服务器的内容编码类型(默认: "application/x-www-form-urlencoded; charset=UTF-8")
+          async：是否异步
+        timeout：设置请求超时时间（毫秒）
+      beforeSend：发送请求前执行的函数(全局)
+        complete：完成之后执行的回调函数(全局)
+        success：成功之后执行的回调函数(全局)
+          error：失败之后执行的回调函数(全局)
+        accepts：通过请求头发送给服务器，告诉服务器当前客户端可接受的数据类型
+        dataType：将服务器端返回的数据转换成指定类型
+          "xml": 将服务器端返回的内容转换成xml格式
+          "text": 将服务器端返回的内容转换成普通文本格式
+          "html": 将服务器端返回的内容转换成普通文本格式，在插入DOM中时，如果包含JavaScript标签，则会尝试去执行。
+        "script": 尝试将返回值当作JavaScript去执行，然后再将服务器端返回的内容转换成普通文本格式
+          "json": 将服务器端返回的内容转换成相应的JavaScript对象
+        "jsonp": JSONP 格式使用 JSONP 形式调用函数时，如 "myurl?callback=?" jQuery 将自动替换 ? 为正确的函数名，以执行回调函数
+~~~
+
+~~~js
+function a1(){
+    $.ajax({
+        url:"${pageContext.request.contextPath}/a1",
+        data:{'name':$("#txtName").val()},
+        success:function (data,status) {
+            alert(data);
+            alert(status);
+        }
+    });
+}
+用户名:<input type="text" id="txtName" onblur="a1()"/>
+~~~
