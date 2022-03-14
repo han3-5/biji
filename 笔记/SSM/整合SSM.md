@@ -421,3 +421,344 @@
     }
     ~~~
 
+## Ajax 登录提示
+
+- 编写 login.jsp 
+
+    ~~~jsp
+    <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+    <html>
+        <head>
+            <title>Title</title>
+            <script src="static/jquery-2.0.0.min.js"></script>
+            <script>
+                function a1(){
+                    $.ajax({
+                        url:"${pageContext.request.contextPath}/aa1",   // 请求的地址
+                        data:{'name':$("#name").val()},     // 向后端传送的数据
+                        success:function (data){            // 回调函数，后端返回的数据
+                            if (data.toString()==='ok'){
+                                $("#userInfo").css("color","green");
+                            }else{
+                                $("#userInfo").css("color","red");
+                            }
+                            $("#userInfo").html(data)
+                        }
+                    })
+                }
+                function a2(){
+                    $.ajax({
+                        url:"${pageContext.request.contextPath}/aa1",   // 请求的地址
+                        data:{'pwd':$("#pwd").val()},     // 向后端传送的数据
+                        success:function (data){            // 回调函数，后端返回的数据
+                            if (data.toString()==='ok'){
+                                $("#pwdInfo").css("color","green");
+                            }else{
+                                $("#pwdInfo").css("color","red");
+                            }
+                            $("#pwdInfo").html(data)
+                        }
+                    })
+                }
+            </script>
+        </head>
+        <body>
+            <p>用户名：<input type="text" id="name" onblur="a1()">
+                <span id="userInfo"></span>
+            </p>
+            <p>密码：<input type="password" id="pwd" onblur="a2()">
+                <span id="pwdInfo"></span>
+            </p>
+        </body>
+    </html>
+    ~~~
+
+- spring-mvc.xml json乱码过滤
+
+    ~~~xml
+    <!--开启mvc注解驱动,并解决Json乱码-->
+    <mvc:annotation-driven>
+        <mvc:message-converters register-defaults="true">
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <constructor-arg value="UTF-8"/>
+            </bean>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+                        <property name="failOnEmptyBeans" value="false"/>
+                    </bean>
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+    ~~~
+
+- Controller 层编写
+
+    ~~~java
+    // 登录Ajax
+    @RequestMapping( value = "/aa1")
+    @ResponseBody   // 使下面方法不走SpringMVC视图解析器
+    public String logTest(String name,String pwd){
+        String msg = "";
+        if (name != null){
+            if ("admin".equals(name)){
+                msg = "ok";
+            }else{
+                msg = "用户名有误";
+            }
+        }
+        if (pwd != null){
+            if ("123456".equals(pwd)){
+                msg = "ok";
+            }else{
+                msg = "密码有误";
+            }
+        }
+        return msg;
+    }
+    ~~~
+
+## 用户登录拦截
+
+- index.jsp
+
+    ~~~jsp
+    <h1><a href="${pageContext.request.contextPath}/goLogin">登录页面</a></h1>
+    <h1><a href="${pageContext.request.contextPath}/main">首页</a></h1>
+    ~~~
+
+- login.jsp
+
+    ~~~jsp
+    <h1>登录页面</h1>
+    <form action="${pageContext.request.contextPath}/login" method="post">
+        用户：<input type="text" name="username">
+        密码：<input type="text" name="password">
+        <input type="submit" value="提交">
+    </form>
+    ~~~
+
+- main.jsp
+
+    ~~~jsp
+    <h1>首页</h1>
+    <h3>${userLoginInfo}</h3>
+    <h2><a href="/outLogin">注销</a></h2>
+    ~~~
+
+- 登录 Controller
+
+    ~~~java
+    @Controller
+    public class LoginController {
+        @RequestMapping("/main")
+        public String main(){
+            return "main";
+        }
+        @RequestMapping("/goLogin")
+        public String goLogin(){
+            return "login";
+        }
+        @RequestMapping("/login")
+        public String login(String username, String password, HttpSession session){
+            // 将用户信息存在session中
+            session.setAttribute("userLoginInfo",username);
+            return "main";
+        }
+        // 注销
+        @RequestMapping("/outLogin")
+        public String out(HttpSession session){
+            session.removeAttribute("userLoginInfo");
+            System.out.println("zhuxiao le ");
+            return "redirect:/index.jsp";
+        }
+    }
+    ~~~
+
+- 拦截器
+
+    ~~~java
+    public class LoginInterceptor implements HandlerInterceptor {
+        @Override
+        public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+            if (request.getRequestURI().contains("goLogin")){
+                return true;
+            }
+            if (request.getRequestURI().contains("login")){
+                return true;
+            }
+            if (request.getSession().getAttribute("userLoginInfo")!=null){
+                return true;
+            }
+            request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request,response);
+            return false;
+        }
+    }
+    ~~~
+
+- 配置拦截器，使其生效
+
+    ~~~xml
+    <!--拦截器配置-->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!-- /** 代表拦截所有请求 -->
+            <mvc:mapping path="/**"/>
+            <bean class="config.LoginInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+    ~~~
+
+## 文件上传与下载
+
+需要用到两个包 ：
+
+Commons-io  [Maven :commons-io](https://mvnrepository.com/artifact/commons-io/commons-io)
+
+commons-fileupload  [Maven :commons-fileupload ](https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload)
+
+在HTML页面input必须有**`name <input="file" name="filename">`**
+
+**表单如果包含一个文件上传输入项的话，这个表单的 enctype 属性就必须设置为`enctype="multipart/form-data"`** 因为这样设置才会以流的形式传输
+
+- Spring MVC为文件上传提供了直接的支持，是MultipartResolver实现的。
+
+#### 上传
+
+- 配置springxxxx.xml **这个bena的id必须为：multipartResolver** 
+
+    ~~~xml
+    <!--文件上传配置-->
+    <bean id="multipartResolver"  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- 请求的编码格式，必须和jSP的pageEncoding属性一致，以便正确读取表单的内容，默认为ISO-8859-1 -->
+        <property name="defaultEncoding" value="utf-8"/>
+        <!-- 上传文件大小上限，单位为字节（10485760=10M） -->
+        <property name="maxUploadSize" value="10485760"/>
+        <property name="maxInMemorySize" value="40960"/>
+    </bean>
+    ~~~
+
+- 前端界面
+
+    ~~~JSP
+    <form action="${pageContext.request.contextPath}/upload2" enctype="multipart/form-data" method="post"/>
+    <input type="file"  name="file">
+    <input type="submit" value="upload">
+    </form>
+    ~~~
+
+- Controller层      **方法一**
+
+    ~~~java
+    @Controller
+    public class FileController {
+        //@RequestParam("file") 将name=file控件得到的文件封装成CommonsMultipartFile 对象
+        //批量上传CommonsMultipartFile则为数组即可
+        @RequestMapping("/upload")
+        public String fileUpload(@RequestParam("file") CommonsMultipartFile file , HttpServletRequest request) throws IOException {
+    
+            //获取文件名 : file.getOriginalFilename();
+            String uploadFileName = file.getOriginalFilename();
+    
+            //如果文件名为空，直接回到首页！
+            if ("".equals(uploadFileName)){
+                return "redirect:/index.jsp";
+            }
+            System.out.println("上传文件名 : "+uploadFileName);
+    
+            //上传路径保存设置
+            String path = request.getSession().getServletContext().getRealPath("/upload");
+            //如果路径不存在，创建一个
+            File realPath = new File(path);
+            if (!realPath.exists()){
+                realPath.mkdir();
+            }
+            System.out.println("上传文件保存地址："+realPath);
+    
+            InputStream is = file.getInputStream(); //文件输入流
+            OutputStream os = new FileOutputStream(new File(realPath,uploadFileName)); //文件输出流
+    
+            //读取写出
+            int len=0;
+            byte[] buffer = new byte[1024];
+            while ((len=is.read(buffer))!=-1){
+                os.write(buffer,0,len);
+                os.flush();
+            }
+            os.close();
+            is.close();
+            return "redirect:/index.jsp";
+        }
+    }
+    ~~~
+
+- Controller    **方法二**    **采用file.Transto 来保存上传的文件**
+
+    ~~~java
+    /*
+    * 采用file.Transto 来保存上传的文件
+    */
+    @RequestMapping("/upload2")
+    public String  fileUpload2(@RequestParam("file") CommonsMultipartFile file, HttpServletRequest request) throws IOException {
+    
+        //上传路径保存设置
+        String path = request.getSession().getServletContext().getRealPath("/upload");
+        File realPath = new File(path);
+        if (!realPath.exists()){
+            realPath.mkdir();
+        }
+        //上传文件地址
+        System.out.println("上传文件保存地址2："+realPath);
+    
+        //通过CommonsMultipartFile的方法直接写文件（注意这个时候）
+        file.transferTo(new File(realPath +"/"+ file.getOriginalFilename()));
+    
+        return "redirect:/index.jsp";
+    }
+    ~~~
+
+#### 下载
+
+- 前端
+
+    ~~~JSP
+    <a href="/download">点击下载</a>
+    ~~~
+
+- Controller 
+
+    ~~~java
+    @RequestMapping(value="/download")
+    public String downloads(HttpServletResponse response , HttpServletRequest request) throws Exception{
+        //要下载的图片地址
+        String  path = request.getSession().getServletContext().getRealPath("/static");
+        String  fileName = "测试.png";
+    
+        //1、设置response 响应头
+        response.reset(); //设置页面不缓存,清空buffer
+        response.setCharacterEncoding("UTF-8"); //字符编码
+        response.setContentType("multipart/form-data"); //二进制传输数据
+        //设置响应头
+        response.setHeader("Content-Disposition",
+                           "attachment;fileName="+ URLEncoder.encode(fileName, "UTF-8"));
+    
+        File file = new File(path,fileName);
+        //2、 读取文件--输入流
+        InputStream input=new FileInputStream(file);
+        //3、 写出文件--输出流
+        OutputStream out = response.getOutputStream();
+    
+        byte[] buff =new byte[1024];
+        int index=0;
+        //4、执行 写出操作
+        while((index= input.read(buff))!= -1){
+            out.write(buff, 0, index);
+            out.flush();
+        }
+        out.close();
+        input.close();
+        return null;
+    }
+    ~~~
+

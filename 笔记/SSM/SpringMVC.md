@@ -711,3 +711,56 @@ public class RestFulController {
 
 > fastjson 是阿里巴巴开发的方便用于 Json 对象与 JavaBean 互相转换
 
+## 拦截器
+
+> SpringMVC处理器拦截器类似于Servlet 中的过滤器 Filter
+
+- 过滤器在java web工程中都可以使用
+- 拦截器是SpringMVC框架自己的，只有使用了SpringMVC框架的工程才能使用
+- 拦截器只会拦截访问的控制器方法，如果访问的是jsp/html/css/js·····等是不会进行拦截的
+
+过滤器和拦截器的区别：拦截器是AOP思想的具体应用
+
+- 一个Controller 类 （测试用）
+
+    ~~~java
+    @Controller
+    public class TestController {
+    
+        @RequestMapping("/t1")
+        @ResponseBody
+        public String test(){
+            System.out.println("执行了...");
+            return "ok";
+        }
+    }
+    ~~~
+
+- 编写拦截器 实现 HandlerInterceptor 接口
+
+    ~~~java
+    public class MyInterceptor implements HandlerInterceptor {
+        // return true; 执行下一个拦截(放行)
+        // return false; 不执行下一个拦截
+        @Override
+        public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+            System.out.println("拦截器执行了...");
+            return false;
+        }
+    }
+    ~~~
+
+- 拦截器配置 (springxxx.xml下配置)
+
+    ~~~xml
+    <!--拦截器配置-->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!-- /** 代表拦截所有请求 -->
+            <mvc:mapping path="/**"/>
+            <bean class="config.MyInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+    ~~~
+
+    
