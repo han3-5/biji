@@ -216,6 +216,22 @@ alter table 表名 drop 列名;
 drop table [if exists] 表名;
 ~~~
 
+#### 修改加密方式
+
+- 修改为普通加密
+
+    ~~~sql
+    -- yourpassword  你的密码
+    ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'yourpassword';
+    ~~~
+
+- 修改为caching_sha2_password 加密 （默认的加密方式）
+
+    ~~~sql
+    -- yourpassword  你的密码
+    ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'yourpassword';
+    ~~~
+
 ## 数据管理
 
 #### 外键
