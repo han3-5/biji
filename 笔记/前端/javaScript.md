@@ -147,12 +147,14 @@ arr.join('-')	//会返回A-B-C
 > for...of ES6引入的新语法
 
 ~~~javascript
-var arr = [1,2,3]
+var arr = ['A','B','C']
 for(let x in arr){
-    //in 遍历的下标 得到的是String
+    // in 遍历的下标 得到的是String
+    // 结果：0  1  2
 }
 for(let x of arr){
     //of 遍历的value 
+    // 结果 A  B  C
 }
 ~~~
 

@@ -380,6 +380,22 @@ select * from `表名1` [xxx] join `表名2` on `相同的列`=`相同的列`
 select * from `表名1` [xxx] join `表名2` on `相同的列`=`相同的列` [xxx] join `表名3` on `相同的列`=`相同的列`
 ~~~
 
+注：mysql 不支持outer join，需要 union
+
+~~~sql
+select * from `表名1` [xxx] right join `表名2` on `相同的列`=`相同的列` 
+union 
+select * from `表名1` [xxx] left join `表名2` on `相同的列`=`相同的列`
+~~~
+
+> 原来的语句：select * from A full outer join B on A.key = B.key where A.key is null and B.key is null   需要变成
+
+~~~sql
+select * from `表名1` [xxx] right join `表名2` on `相同的列`=`相同的列` where `表名2`.`相同的列` is null
+union 
+select * from `表名1` [xxx] left join `表名2` on `相同的列`=`相同的列` where `表名1`.`相同的列` is null
+~~~
+
 #### 联表查询 自连接
 
 #### 分页和排序
