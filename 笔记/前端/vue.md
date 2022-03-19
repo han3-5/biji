@@ -19,7 +19,7 @@
 - View 是视图层，用户界面，主要HTML和CSS来构建
 - ViewModel 对后端取得的Model 数据进行处理，双向绑定
 
-## vue
+## vue 基础
 
 > vue 就是一个MVVM的实现者，核心就是实现了DOM监听和数据绑定
 
@@ -290,4 +290,124 @@
 注意：定义标签名字的时候，不能有大写字母，要换成"-"
 
 #### 自定义事件分发
+
+**this.$emit("自定义事件名",参数)**
+
+~~~html
+<div id="app">
+    <test>
+        <title-test1 slot="title-test" v-bind:title="title1"></title-test1>
+        <!-- v-for 的index索引往后面放 -->
+        <item-test1 slot="item-test" v-for="(item1,index) in items"
+                    v-bind:item="item1"  v-bind:index="index" v-on:remove111="removeitems(index)"></item-test1>
+    </test>
+</div>
+<!-- 导入 Vue.js -->
+<script src="https://unpkg.com/vue@2.5.21"></script>
+<script>
+    // slot：插槽
+    Vue.component("test",{
+        template: ` <div>
+                            <slot name="title-test"></slot>
+                            <ul>
+                                <slot name="item-test"></slot>
+   							</ul>
+   					 </div>`
+    });
+    Vue.component("title-test1",{
+        props: ["title"],
+        template: "<div>{{title}}</div>"
+    });
+    Vue.component("item-test1",{
+        props: ["item","index"],
+        // 只能绑定当前组件的方法
+        template: "<li>{{item}}--{{index}}<button v-on:click='remove'>删除</button></li>",
+        methods: {
+            remove: function(index){
+                // this.$emit("自定义事件名",参数)
+                this.$emit("remove111",index)
+            }
+        },
+    });
+    var vm = new Vue({
+        el:"#app",
+        data: {
+            title1:"列表",
+            items: ["html","css","js"]
+        },
+        methods: {
+            removeitems: function(index){
+                console.log("删除了 "+this.items[index]);
+                this.items.splice(index,1);// 一次删除一个元素
+            }
+        }
+    });
+</script>
+~~~
+
+> 难点就一个：是谁绑了我，而我又绑了谁
+
+## vue-cli
+
+> vue-cli 是官方提供的一个脚手架，用于快速生成一个vue的项目模板
+
+下载
+
+~~~bash
+npm install vue-cli -g
+~~~
+
+#### 第一个 vue-cli(老)
+
+在cmd窗口下初始化 vue-cli
+
+~~~bash
+npm i -g @vue/cli-init # 为了能使用旧版本的 vue init
+vue init webpack xxxx # xxxx是创建的文件名
+~~~
+
+然后会有一些提示
+
+~~~bash
+Project name：项目名称，默认回车即可
+Project description：项目描述，默认回车即可
+Author：项目作者，默认回车即可
+Install vue-router：是否安装vue-router，选择n不安装（后期需要再手动添加）
+Use ESLint to lint your code:是否使用ESLint做代码检查，选择n不安装（后期需要再手动添加)
+Set up unit tests:单元测试相关，选择n不安装（后期需要再手动添加）
+Setupe2etests with Nightwatch：单元测试相关，选择n不安装（后期需要再手动添加）
+Should we run npm install for you after the,project has been created:创建完成后直接初始化，选择n，我们手动执行；运行结果
+~~~
+
+初始化并运行
+
+~~~bash
+cd myvue
+npm install
+# 安装依赖的时候可能会出错，按照提示，运行就
+npm run dev
+~~~
+
+#### 第一个 @vue/cli
+
+[vue cli3.0快速搭建项目详解（网上） ](https://www.cnblogs.com/coober/p/10875647.html)
+
+[vue cli3.0快速搭建项目详解（本地）](./test.html)
+
+~~~bash
+# npm uninstall vue-cli -g  卸载老版本
+npm install -g @vue/cli	
+# vue -V	查看版本
+~~~
+
+在cmd窗口下初始化 vue-cli
+
+~~~bash
+vue create xxxx # xxxx是创建的文件名
+~~~
+
+~~~bash
+Default	# 默认设置（直接enter）非常适合快速创建一个新项目的原型，没有带任何辅助功能的 npm包
+Manually select features # 自定义配置是我们所需要的面向生产的项目，提供可选功能的 npm 包
+~~~
 
