@@ -392,7 +392,7 @@ npm run dev
 
 [vue cli3.0快速搭建项目详解（网上） ](https://www.cnblogs.com/coober/p/10875647.html)
 
-[vue cli3.0快速搭建项目详解（本地）](./test.html)
+[vue cli3.0快速搭建项目详解（本地）](./vue cli3.0.md)
 
 ~~~bash
 # npm uninstall vue-cli -g  卸载老版本
@@ -406,8 +406,5 @@ npm install -g @vue/cli
 vue create xxxx # xxxx是创建的文件名
 ~~~
 
-~~~bash
-Default	# 默认设置（直接enter）非常适合快速创建一个新项目的原型，没有带任何辅助功能的 npm包
-Manually select features # 自定义配置是我们所需要的面向生产的项目，提供可选功能的 npm 包
-~~~
+
 
