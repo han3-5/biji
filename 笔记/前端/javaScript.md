@@ -388,6 +388,24 @@ getName.apply(aaa,[]);	//相当于aaa.a1()
 //apply(想指向的对象,[传递的参数列表])
 ~~~
 
+#### 原型（prototype）
+
+~~~bash
+显示原型与隐式原型
+
+原型链
+
+instanceof
+
+执行上下文与执行上下文栈
+
+作用域与作用域链
+~~~
+
+有时间在看吧
+
+[尚硅谷JavaScript高级教程(javascript实战进阶)_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV14s411E7qf?p=15)
+
 #### 闭包
 
 > 一个函数内部的局部变量被一个新函数调用

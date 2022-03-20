@@ -21,7 +21,16 @@
 
 ## vue 基础
 
+[Vue.js (vuejs.org)](https://cn.vuejs.org/)
+
 > vue 就是一个MVVM的实现者，核心就是实现了DOM监听和数据绑定
+
+vs code 一个插件 Vue 3 Snippets
+
+**两个重要的原则：**
+
+1. 所被Vue管理的函数，最好写成普通函数，这样this的指向才是vm或组件实例对象
+2. 所有不背Vue管理的函数(例如定时器的回调函数、ajax的回调函数等)，最好写成箭头函数，这样this的指向才是vm或组件实例对象
 
 #### 第一个vue
 
@@ -34,18 +43,64 @@
 <script>
     var vm = new Vue({
         el:"#app",
+        // data 的第一种写法：对象式
         data:{
             message:"hello vue"
+        }
+        // data 的第二种写法：函数式 需要有return
+        //data:function(){ 		可以简写成下面
+        data(){	
+        return {
+            message: "nihao"
+        }
+    }
+    });
+    vm.$mount("#app")	// 等于el:"#app"
+</script>
+~~~
+
+**注意： 一个容器只能和一个实例绑定**
+
+#### 数据代理
+
+Object.defineProperty
+
+~~~html
+<script type="text/javascript">
+    let number = 18;
+    let person= {
+        name: '张三',
+        sex: '男'
+    }
+    // Object.defineProperty(传给哪个对象,传的属性是什么,配置项)
+    Object.defineProperty(person,'age',{
+        // value: 18,
+        // enumerable: true,   // 控制属性是否可以枚举，默认为false
+        // writable: true,     // 控制属性是否可以被修改，默认为false
+        // configurable: true, // 控制属性是否可以被删除，默认为false
+
+        // 当有人读取person的age属性时，get函数就会被调用，且会返回的值就是age的值
+        get(){
+            console.log('有人读取了age属性');
+            return number;
+        },
+
+        // 当有人修改person的age属性时，set函数就会被调用，且会返回的值就是age的值
+        set(value){
+            console.log('有人修改了age属性');
+            number = value;
         }
     })
 </script>
 ~~~
 
+
+
 #### 指令
 
 > `v-xxx` 就是一个指令
 
-**v-bind** 主要用于属性绑定	可以使用简写"v-bind:xxx"==>":xxx"
+**v-bind** 主要用于属性绑定，单向绑定	可以使用简写"v-bind:xxx"==>":xxx"
 
 ~~~html
 <div id="app">
@@ -135,9 +190,65 @@
 </script>
 ~~~
 
+**事件修饰符**
+
+~~~html
+<div id="app">
+    <!-- prevent:阻止默认事件 -->
+    <a href="http://www.baidu.com" @click.prevent="showInfo">点我</a>
+    <div @click="showInfo1">
+        <!-- stop 阻止事件冒泡.写在里面 -->
+        <button @click.stop="showInfo">点我</button>
+        <!--可以链式调用-->
+        <!-- <a href="http://www.baidu.com" @click.prevent.stop="showInfo">点我</a> -->
+    </div>
+    <!-- once 事件只触发一次 -->
+    <button @click.once="showInfo">点我3</button>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            message: "nihao"
+        },
+        methods:{
+            showInfo(){
+                alert("nihao");
+            },
+            showInfo1(){
+                alert("1111");
+            }
+        }
+    });
+</script>
+~~~
+
+#### 键盘事件
+
+~~~html
+<div id="app">
+    <!-- Vue 常用按键别名：
+        回车 ==> enter  删除 == > delete 退出 ==> esc 空格 ==> space
+        换行 ==> tab（需要配合keydown） 上  ==> up  下 ==> down 左 ==> left 右==>right
+        需要注意的按键：ctrl alt shift meta(win键) 使用keyup需要搭配别的键，最好使用keydown-->
+    <input type="text" placeholder="按下回车提示输入" @keyup.enter="showInfo">
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        methods: {
+            showInfo(e){
+                // console.log(e.key,e.keyCode)
+                console.log("test");
+            }
+        }
+    });
+</script>
+~~~
+
 #### 双向绑定
 
-**v-model**
+**v-model** 一般应用在表单类元素上，v-model 默认收集的是value的值
 
 ~~~html
 <div id="app">
@@ -220,7 +331,9 @@
 
 #### 计算属性
 
-计算属性的重点在`属性`(计算是个动词,属性是个名词)这里的`计算`就是个函数；简单的说，**`计算属性`** 是一个将计算结果缓存起来的属性，可以想象成**缓存**
+计算属性的重点在`属性`(计算是个动词,属性是个名词)这里的`计算`就是个函数；简单的说，**`计算属性`** 是一个将计算结果缓存起来的属性，该属性的值是计算出来的，可以想象成**缓存**
+
+> 原理：底层借助了Object.defineproperty 方法提供的get set
 
 ~~~html
 <div id="app">
@@ -247,6 +360,101 @@
 ~~~
 
 如果打开浏览器的 Console 可以发现，每次调用 currentTime1,值一直在改变，而调用 currentTime2,值不会变
+
+#### 监视属性
+
+监视属性watch：
+
+1. 当被监视的属性变化时，回调函数自动调用(handler)，进行相关操作
+2. 监视的属性必须存在，才能进行监视 
+
+~~~html
+<div id="app">
+    {{info}}
+    <button @click="change()">切换</button>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data:{
+            isHost: true
+        },
+        computed: {
+            info(){
+                return this.isHost?'一':'二';
+            }
+        },
+        methods: {
+            change(){
+                this.isHost = !this.isHost
+            }
+        },
+        watch: {
+            // 想监视谁 ：xxx
+            isHost: {
+                immediate:true, // 初始化时调用一下handler
+                handler(newtest,oldtest){
+                    console.log('修改了',newtest,oldtest);
+                }
+            }
+        }
+
+    });
+    // 第二种写法
+    // vm.$watch('isHost',{
+    //     immediate:true, // 初始化时调用一下handler
+    //     handler(newtest,oldtest){
+    //         console.log('修改了',newtest,oldtest);
+    //     }
+    // });
+</script>
+~~~
+
+深度监视
+
+>  Vue中watch默认不检测对象内部值的改变，配置deep:true可以检测内部
+
+~~~html
+<div id="app">
+    <h3>a:{{numbers.a}}</h3>
+    <button @click="numbers.a++">a加</button>
+    <h3>b:{{numbers.b}}</h3>
+    <button @click="numbers.b++">b加</button>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data:{
+            numbers: {
+                a:1,
+                b:1
+            }
+        },
+        watch: {
+            // 监视多级结构中某个属性的变化
+            'numbers.a': {
+                handler(newtest,oldtest){
+                    console.log('修改了',newtest,oldtest);
+                }
+            },
+            // 监视多级结构中所有属性的变化
+            numbers:{
+                deep:true,
+                handler(){
+                    console.log("numbers被修改了")
+                }
+            }
+        }
+    });
+</script>
+~~~
+
+**计算属性 vs 监视属性**
+
+computed 和 watch 之间的区别：
+
+1. computed能完成的功能，watch都能完成
+2. watch能完成的功能，computed不一定能完成。例如：watch可以进行异步操作
 
 #### 插槽
 
@@ -390,6 +598,8 @@ npm run dev
 
 #### 第一个 @vue/cli
 
+[配置参考 | Vue CLI ](https://cli.vuejs.org/zh/config/)
+
 [vue cli3.0快速搭建项目详解（网上） ](https://www.cnblogs.com/coober/p/10875647.html)
 
 [vue cli3.0快速搭建项目详解（本地）](./vue cli3.0.md)
@@ -404,7 +614,40 @@ npm install -g @vue/cli
 
 ~~~bash
 vue create xxxx # xxxx是创建的文件名
+# 可以直接选择默认
 ~~~
 
+~~~bash
+npm run serve 	# 热加载 ctrl+c 停止服务
+~~~
 
+因为vue把配置文件都隐藏了，所以需要使用`vue inspect > xx.js` 把配置打印出来
 
+**修改端口**
+
+方法一：在package.json 文件下设置
+
+~~~json
+{
+    "scripts": {
+    "serve": "vue-cli-service serve --port xxxx",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+} 
+~~~
+
+方法二：在 vue.config.js 文件下配置
+
+~~~json
+module.exports = {
+    devServer: {
+        port: xxxx, // 端口
+    }
+    // lintOnSave: false // 取消 eslint 验证
+}
+~~~
+
+## 路由
+
+vue@2xxx 只能使用vue-router@3版本
