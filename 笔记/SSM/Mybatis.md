@@ -180,10 +180,10 @@ public static SqlSession getSqlSession(){
             // 1. 获得SqlSession对象
             SqlSession sqlSession = MybatisUtils.getSqlSession();
             // 2. 执行sql 方式一：getMapper(推荐)
-            //        UserDao mapper = sqlSession.getMapper(UserDao.class);
-            //        List<User> userList = mapper.getUserList();
+                    UserDao mapper = sqlSession.getMapper(UserDao.class);
+                    List<User> userList = mapper.getUserList();
             // 执行sql 方式二 (不推荐了)
-            List<User> userList = sqlSession.selectList("dao.UserDao.getUserList");
+            // List<User> userList = sqlSession.selectList("dao.UserDao.getUserList");
             for (User user:userList){
                 System.out.println(user);
             }

@@ -65,6 +65,8 @@ vs code 一个插件 Vue 3 Snippets
 
 Object.defineProperty
 
+Vue中data的数据来自_data，做了数据代理
+
 ~~~html
 <script type="text/javascript">
     let number = 18;
@@ -94,7 +96,61 @@ Object.defineProperty
 </script>
 ~~~
 
+Vue 监测对象里数据的原理其实就是 监测 set(){} 
 
+**Vue.set（target,key,value）**   ===   vm.set(target,key,value)
+
+> 问题：想不修改代码的情况下，页面展示一个sex. 但是注意：data不能作为target。也就是不能给data加，可以给data里面的对象加
+
+~~~html
+<div id="app">
+    <h3>{{name}}</h3>
+    <h3>{{age}}</h3>
+    <h3>{{student.name}}</h3>
+    <h3>test:{{student.sex}}</h3>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            name: "nihao",
+            age: 18,
+            student: {
+                name: "test"
+            }
+        }
+    });
+    // 问题：想不修改代码的情况下，页面展示一个sex
+    //Vue.set(vm.student,'sex','男')
+    // vm.$set(vm.数组名,index,'value')	// 数组
+    vm.$set(vm.student,'sex','男')
+</script>
+~~~
+
+**Vue监视数据总结：**
+
+1. vue会监视data中所有层次的数据
+
+2. 如何监测对象中的数据
+
+    ​	通过 setter 实现监视，且要new Vue时就传入要监测的数据
+
+    1. 对象中后追加的属性，Vue默认不做响应式处理
+    2. 如需給后添加的属性做响应式，需要借助 Vue.set()或vm.$set
+
+3. 如何监测数组中的数据
+
+    ​    通过包裹数组更新元素的方法实现，本质做了两件事情：
+
+    1. 调用原生对应的方法对数组进行更新
+    2. 重新解析模板，进而更新页面
+
+4. 在Vue修改数组中的某个元素需要用以下方法：
+
+    1. 使用API：push()、pop()、shift()、unshift()、splice()、sort()、reverse()
+    2. Vue.set 或 vm.$set()
+
+5. 需要注意：Vue.set() 和 vm.$set() 不能给vm或者vm的根数据对象添加属性(data)
 
 #### 指令
 
@@ -118,7 +174,29 @@ Object.defineProperty
 </script>
 ~~~
 
+**v-show**
+
+> 底层实现是用 display:none 节点还在  不能和template使用
+
+~~~html
+<div id="app">
+    <h1 v-show="message==='1'">1</h1>
+</div>
+<!-- 导入 Vue.js -->
+<script src="https://unpkg.com/vue@2.5.21"></script>
+<script>
+    var vm = new Vue({
+        el:"#app",
+        data:{
+            message: "1"
+        }
+    })
+</script>
+~~~
+
 **v-if**
+
+> 节点不在了
 
 ~~~html
 <div id="app">
@@ -140,8 +218,13 @@ Object.defineProperty
 
 **v-for**
 
+1. 用于展示列表数据
+2. 语法   v-for="(value,index) in xxx" :key="yyy"   key唯一
+3. 可遍历：数组、对象、字符串、指定次数
+
 ~~~html
 <div id="app">
+    <!-- v-for="(value,key) in xxxx" 先是值，后是键-->
     <h1 v-for="item in items">{{item.message}}</h1>
 </div>
 <!-- 导入 Vue.js -->
@@ -160,9 +243,39 @@ Object.defineProperty
 </script>
 ~~~
 
-#### 事件
+**关于 v-for 的key**（内部原理）
 
-**v-on**     可以使用简写 "v-on:xxx"==>"@xxxx"
+key 是虚拟DOM对象的标识，当数据发生变化时，Vue会根据【新数据】生成【新的虚拟DOM】，随后Vue进行【新虚拟DOM】与【旧虚拟DOM】的差异比较(diff算法)，规则如下：
+
+1. 对比规则：
+
+    1. 旧虚拟DOM中找到了与新虚拟DOM相同的key：
+
+        1. 若虚拟DOM中内容没变，直接使用之前的真的DOM
+        2. 若虚拟DOM中内容变了，则生成新的真实DOM，随后替换掉页面中之前的真是DOM
+
+    2. 旧虚拟DOM中未找到与新虚拟DOM相同的key
+
+       ​        创建新的真是DOM，随后渲染到页面
+
+2. 用index作为key可以会引发的问题
+
+    1. 若对数据进行了：逆序添加、逆序删除等破坏顺序的操作：
+
+       会产生没有必要的真是DOM更新 ==> 界面效果没问题，但效率低
+
+    2. 如果结构中还包含输入类的DOM：
+
+       会产生错误的DOM更新   ==>  界面会有问题
+
+3. 开发中如何选择key？：
+
+    1. 最好使用每条数据的唯一标识作为key
+    2. 如果不存在对数据进行逆序操作等破坏顺序的操作，仅仅用于渲染列表用于展示，使用index作为key是没有问题的
+
+**v-on**   
+
+`事件`  可以使用简写 "v-on:xxx"==>"@xxxx"
 
 ~~~html
 <div id="app">
@@ -189,6 +302,101 @@ Object.defineProperty
     })
 </script>
 ~~~
+
+**v-cloak**      v-cloak指令没有值
+
+- 本质是一个特殊的属性，Vue实例创建完毕并接管容器后，会删掉v-cloak属性
+- 使用css配合v-cloak可以解决网速慢时页面出现{{xxxx}}的问题
+
+~~~html
+<style>
+    [c-cloak]{
+        display:none;
+    }
+</style>
+<div>
+    <h3 v-cloak>{{xxx}}</h3>
+</div>
+~~~
+
+**v-once**
+
+- v-once 所在的节点在初次动态渲染后，就变成静态内容了
+- 以后的数据改变不会引起v-once所在结构的更新，可以用于优化性能
+
+**v-pre**
+
+- 跳过所在节点的编译过程
+
+#### 自定义指令
+
+~~~html
+<div id="app">
+    <h3>当前的值：{{n}}</h3>
+    <h3>十倍后的值：<span v-big="n"></span></h3>
+    <button @click="n++">值加1</button>
+</div>
+<script>
+    // 全局自定义指令
+    Vue.directive('big',function(element,binding){//Vue.directive('big',{})
+        element.innerText = binding.value * 10;
+    })
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            n:1
+        },
+        // 自定义指令(局部)
+        directives: {
+            // element : 所在的节点 binding : 绑定的元素(此处是n)
+            // 何时被调用？1. 指令与元素成功绑定时 2.指令所在的模板被重新解析时，相当于调用了对象式的bing()和update()
+            big(element,binding){
+                element.innerText = binding.value * 10;
+            }
+            // big:{   // 对象式
+                //     bind(){ // 指令与元素成功绑定时
+
+                //     },
+                //     inserted(){ // 指令所在元素被插入页面时
+
+                //     },
+                //     update(){   // 指令所在模板被重新解析时
+
+                //     }
+                // }
+        }
+    });
+</script>
+~~~
+
+**自定义指令总结**
+
+1. 定义语法：
+
+    1. 局部指令：
+
+        new Vue({
+
+        ​	directives:{指令名:配置对象}
+
+        })
+
+    2. 全局指令：
+
+        Vue.directive(指令名,配置对象)
+
+2. 配置对象中常用的3个回调：
+
+    1.  **.bind**：指令与元素成功绑定时调用
+    2.  **.inserted**：指令所在元素被插入页面时调用
+    3.  **.update**：指令所在模板结构被重新解构时调用
+
+3. 备注：
+
+    1. 指令定义时不加 `v-`，但使用时需要加`v-`
+    2. 指令命如果是多个单词，要使用xxx-xxx，不能使用xxxXxxx
+
+#### 事件
 
 **事件修饰符**
 
@@ -223,7 +431,7 @@ Object.defineProperty
 </script>
 ~~~
 
-#### 键盘事件
+**键盘事件**
 
 ~~~html
 <div id="app">
@@ -266,26 +474,117 @@ Object.defineProperty
 </script>
 ~~~
 
-#### 组件
+**收集表单数据**
+
+1. 若<input type ="text"/ > 则v-model收集的是value值，用户输入的就是value值
+
+2. 如<input type ="radio"/ > 则v-model 收集的是value值，且要给标签配置value值
+
+3. 若<input type ="checkbox"/ >
+
+    1. 没有配置input的value属性，那么收集的就是checked（勾选 or 未勾选，是布尔值）
+    2. 配置input的value属性：
+        1. v-model 的初始值是非数组，那么收集的就是checked（勾选 or 未勾选，是布尔值）
+        2. v-model 的初始值是数组，那么收集的就是value组成的数组
+
+    备注： v-model 的三个修饰符
+
+    - lazy：失去焦点在收集数据
+    - number：输入字符串转为有效的数字
+    - trim：输入首尾空格过滤（忽略首尾空格）
+
+#### 列表过滤与排序
+
+**列表过滤**
 
 ~~~html
 <div id="app">
-    <mycomponent v-for="item in items" v-bind:temp="item"></mycomponent>
+    <h2>人员列表</h2>
+    <input type="text" placeholder="请输入名字" v-model="keymod">
+    <ul>
+        <li v-for="item in filPersons" :key="item.id">
+            {{item.name}}:{{item.age}}:{{item.sex}}
+        </li>
+    </ul>
 </div>
-<!-- 导入 Vue.js -->
-<script src="https://unpkg.com/vue@2.5.21"></script>
 <script>
-    // 定义一个Vue组件component
-    Vue.component("mycomponent",{
-        props:["temp"],             // 属性传递参数
-        template:"<p>{{temp}}</p>"  // 组件的模板
-    });
     var vm = new Vue({
-        el:"#app",
+        el:'#app',
         data: {
-            items: ["html","css","javascript"]
+            keymod: '', // 为了拿到用户输入的东西
+            persons:[
+                {id:'01',name:'马冬梅',age:19,sex:'女'},
+                {id:'02',name:'周冬雨',age:20,sex:'女'},
+                {id:'03',name:'周杰伦',age:21,sex:'男'},
+                {id:'04',name:'温兆伦',age:22,sex:'男'},
+            ],
+        },
+        // 用watch 实现
+        // watch: {
+        //     keymod: {
+        //         immediate: true,
+        //         handler(val){
+        //             // filter会重新创建一个数组，所以需要filPersons来接收
+        //             this.filPersons = this.persons.filter((p)=>{
+        //                 return p.name.indexOf(val) !== -1;
+        //             })
+        //         }
+        //     }
+        // }
+        computed: {
+            filPersons(){
+                return this.persons.filter((p)=>{
+                    return p.name.indexOf(this.keymod) !== -1
+                })
+            }
         }
-    })
+    });
+</script>
+~~~
+
+**列表排序**
+
+~~~html
+<div id="app">
+    <h2>人员列表</h2>
+    <input type="text" placeholder="请输入名字" v-model="keymod">
+    <button @click="sortType = 2">年龄升序</button>
+    <button @click="sortType = 1">年龄降序</button>
+    <button @click="sortType = 0">原顺序</button>
+    <ul>
+        <li v-for="item in filPersons" :key="item.id">
+            {{item.name}}:{{item.age}}:{{item.sex}}
+        </li>
+    </ul>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            keymod: '', 	 // 为了拿到用户输入的东西
+            sortType: 0,     // 0 原顺序 1 降序 2 升序
+            persons:[
+                {id:'01',name:'马冬梅',age:30,sex:'女'},
+                {id:'02',name:'周冬雨',age:20,sex:'女'},
+                {id:'03',name:'周杰伦',age:21,sex:'男'},
+                {id:'04',name:'温兆伦',age:22,sex:'男'},
+            ],
+        },
+        computed: {
+            filPersons(){
+                let arr = this.persons.filter((p)=>{
+                    return p.name.indexOf(this.keymod) !== -1
+                })
+                if(this.sortType){
+                    arr.sort((p1,p2)=>{
+                        return this.sortType === 1 ? p2.age-p1.age : p1.age-p2.age;
+                    })
+                }
+                return arr;
+            },
+
+        }
+    });
 </script>
 ~~~
 
@@ -296,6 +595,7 @@ Object.defineProperty
 [axios中文文档](http://www.axios-js.com/zh-cn/docs/)
 
 ~~~json
+// data.json
 {
     "name":"hello",
     "age":"20",
@@ -456,6 +756,92 @@ computed 和 watch 之间的区别：
 1. computed能完成的功能，watch都能完成
 2. watch能完成的功能，computed不一定能完成。例如：watch可以进行异步操作
 
+#### 绑定样式
+
+**绑定css**
+
+~~~html
+<div id="app">
+    <!-- 绑定class样式--字符串写法，适用于：样式的类名不确定，需要动态切换 -->
+    <div class="moren" :class="message" @click="change"></div>
+    <!-- 绑定class样式--数组写法，适用于：绑定的样式不确定、名字也不确定 -->
+    <div class="moren" :class="classArr"></div>
+    <!-- 绑定class样式--对象写法，适用于：要绑定的样式、名字确定，需要动态选择用不用 -->
+    <div class="moren" :class="classObj"></div>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            message: "nihao",
+            classArr: ['test1','test2'],
+            classObj: {
+                test1: false,
+                test2: false,
+            }
+        },
+        methods:{
+            change(){
+                this.message = 'happy'
+            }, 
+        }
+    });
+</script>
+~~~
+
+**绑定style**
+
+~~~html
+<div id="app">
+    <!-- 绑定style样式--对象写法 -->
+    <div class="moren" :style="styleObj"></div>
+</div>
+<script>
+    var vm = new Vue({
+        el:'#app',
+        data: {
+            styleObj: { // 不能瞎写，要css存在
+                fontSize: '40px',
+                color: 'red',
+                backgroundColor: 'blue'
+            }
+        }
+    });
+</script>
+~~~
+
+#### 生命周期
+
+> vm的一生：xxx时候 ==> 调用了？？？函数
+
+1. 生命周期又名：生命周期回调函数、生命周期函数、生命周期钩子
+2. 指的是什么：Vue在关键时刻帮我们调用的一些特殊函数
+3. 生命周期函数的名字不可更改，但函数具体内容由自己编写
+4. 生命周期函数中的this指向的是vm或者组件实例对象
+
+#### 组件
+
+~~~html
+<div id="app">
+    <mycomponent v-for="item in items" v-bind:temp="item"></mycomponent>
+</div>
+<!-- 导入 Vue.js -->
+<script src="https://unpkg.com/vue@2.5.21"></script>
+<script>
+    // 定义一个Vue组件component
+    Vue.component("mycomponent",{
+        props:["temp"],             // 属性传递参数
+        template:"<p>{{temp}}</p>"  // 组件的模板
+    });
+    var vm = new Vue({
+        el:"#app",
+        data: {
+            items: ["html","css","javascript"]
+        }
+    })
+</script>
+~~~
+
 #### 插槽
 
 ~~~html
@@ -565,7 +951,7 @@ computed 和 watch 之间的区别：
 npm install vue-cli -g
 ~~~
 
-#### 第一个 vue-cli(老)
+#### 第一个 vue-cli(2.xx)
 
 在cmd窗口下初始化 vue-cli
 
@@ -648,6 +1034,73 @@ module.exports = {
 }
 ~~~
 
-## 路由
+#### 安装
 
-vue@2xxx 只能使用vue-router@3版本
+全局安装过旧版本的 `vue-cli`(1.x 或 2.x)要先卸载它，否则跳过此步：
+
+~~~bash
+npm uninstall vue-cli -g
+~~~
+
+Vue cli 3 需要nodejs至少8.9以上版本
+
+~~~bash
+npm install -g @vue/cli
+~~~
+
+#### 使用
+
+新建项目
+
+~~~bash
+vue create xxxx # xxxx是创建的文件名
+~~~
+
+1. 首先，会提示选择preset(预设).除最后两个**，**其他选项都是你此前保存的预设配置
+
+![](./images/02.png)
+
+default（babel，eslint）：默认设置非常适合快速创建一个新项目的原型，没有带任何辅助功能的 npm包
+
+Manually select features：自定义配置是我们所需要的面向生产的项目，提供可选功能的 npm 包
+
+2. 如果选择了 Manually select features
+
+![](./images/03.png)
+
+~~~bash
+( ) Babel //转码器，可以将ES6代码转为ES5代码，从而在现有环境执行。 
+( ) TypeScript// TypeScript是一个JavaScript（后缀.js）的超集（后缀.ts）包含并扩展了 JavaScript 的语法，需要被编译输出为 JavaScript在浏览器运行，目前较少人再用
+( ) Progressive Web App (PWA) Support// 渐进式Web应用程序
+( ) Router // vue-router（vue路由）
+( ) Vuex // vuex（vue的状态管理模式）
+( ) CSS Pre-processors // CSS 预处理器（如：less、sass）
+( ) Linter / Formatter // 代码风格检查和格式化（如：ESlint）
+( ) Unit Testing // 单元测试（unit tests）
+( ) E2E Testing // e2e（end to end） 测试
+~~~
+
+3. 是否使用 history router：
+
+![](./images/04.png)
+
+4.  css 预处理器
+
+![](./images/05.png)
+
+5. ESlint	提供一个插件化的javascript代码检测工具，ESLint + Prettier //使用较多
+
+![](images/06.png)
+
+6. 何时检测
+
+![](images/07.png)
+
+7. 如果存放位置
+
+![](./images/08.png)
+
+8. 是否保存本次配置
+
+![](./images/09.png)
+
