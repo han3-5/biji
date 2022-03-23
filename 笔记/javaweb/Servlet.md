@@ -321,6 +321,12 @@ void addIntHeader(String var1, int var2);
 4. 获取下载文件的输出流，I/O 流操作
 
 ~~~java
+// 获取文件路径
+ServletContext servletContext = request.getServletContext();
+String realPath = servletContext.getRealPath("index.jsp");
+~~~
+
+~~~java
 protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     // 1. 获取下载文件的路径
     String filePath = "D:\\shangke\\chengxu\\mavenTest\\src\\main\\resources\\5.jpg";

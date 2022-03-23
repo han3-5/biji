@@ -25,7 +25,7 @@
 
 > vue 就是一个MVVM的实现者，核心就是实现了DOM监听和数据绑定
 
-vs code 一个插件 Vue 3 Snippets
+vs code 用的插件： **(Vue 3 Snippets)**、**(Vetur)**
 
 **两个重要的原则：**
 
@@ -1083,9 +1083,43 @@ VueComponent和vm的内置关系
 
 > 一个文件中只包含有 1 个组件
 
+**安装一个插件 Vetur提示高亮**
+
+~~~html
+<template>
+    <!-- 组件的结构 -->
+    <div></div>
+</template>
+
+<script>
+    // 组件交互相关的代码
+    export default{
+        name: 'Shool', // 最好起个和文件名一样的名字
+        // 代码...
+    }
+</script>
+
+<style>
+    /* 组件样式 */
+</style>
+~~~
+
+~~~js
+// 三种暴露形式
+export default{}					// 默认暴露
+import xxx from '位置'
+export const xxx = Vue.extend({})	// 分别暴露
+import {xxx} from '位置'
+const xxx = Vue.extend({})
+export {xxx}						// 统一暴露
+import {xxx} from '位置'
+~~~
+
 ## vue-cli
 
 > vue-cli 是官方提供的一个脚手架，用于快速生成一个vue的项目模板
+
+#### 第一个 vue-cli(cli1.xx|2.xxx)
 
 下载
 
@@ -1093,9 +1127,7 @@ VueComponent和vm的内置关系
 npm install vue-cli -g
 ~~~
 
-#### 第一个 vue-cli(2.xx)
-
-在cmd窗口下初始化 vue-cli
+在cmd窗口下初始化 vue-cli  
 
 ~~~bash
 npm i -g @vue/cli-init # 为了能使用旧版本的 vue init
