@@ -291,3 +291,268 @@ new Vue({
 
 [Todo-list案例]:./Todo-list案例.md
 
+## webStorage
+
+1. 存储内容大小一般支持5MB左右（不同浏览器可能不同）
+
+2. 浏览器端通过Window.sessionStorage 和 Window.localStorage属性来实现本地储存机制
+
+3. 相关API：
+
+    1. `xxxStorage.setItem('key','value');` 
+
+        该方法接收一个键和一个值作为参数，把键值对添加到存储中，如果键名存在，则更新其值
+
+    2. `xxxStorage.getItem('key');`
+
+        该方法接收一个键作为参数，返回键名对应的值
+
+    3. `xxxStorage.removeItem('key');`
+
+        该方法接收一个键名作为参数，并把该键名从存储汇总删除
+
+    4. `xxxStorage.clear();`
+
+        该方法会清空存储中的所有数据
+
+4. 备注：
+
+    1. sessionStorage存储的内容会随着浏览器窗口关闭而消失
+    2. localStorage存储的内容，需要手动清除才会消失，因为被保存在硬盘中了
+    3. `xxxStorage.getItem('key');` 如果获取不到对应key的value，那么返回值为null
+
+## 自定义事件
+
+给谁绑的自定义事件就找谁触发事件。给谁绑的找谁解绑
+
+#### 绑定
+
+School.vue
+
+~~~vue
+<template>
+<div>
+    <h3>学校名称：{{name}}</h3>
+    <h3>学校地址：{{address}}</h3>
+    <button @click="getSchoolName">点我获取学校名</button>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'School',
+        data() {
+            return {
+                name:'mignzi',
+                address:'dizhi',
+            }
+        },
+        methods: {
+            getSchoolName(){
+                // this.$emit("自定义事件名",参数)
+                this.$emit('getName',this.name)	// 发数据方
+            }
+        },
+    }
+</script>
+~~~
+
+App.vue
+
+~~~vue
+<template>
+<div>
+    <!-- 通过父组件给子组件绑定一个自定义事件，实现子给父传数据（第一种写法） -->
+    <!-- <school @getName='getName1'></school> -->
+    <!-- 通过父组件给子组件绑定一个自定义事件，实现子给父传数据（第一种写法）更灵活 -->
+    <school ref='getName1'></school>
+    </div>
+</template>
+
+<script>
+    import School from './components/School.vue'
+    export default {
+        name: 'App',
+        components: {School},
+        methods: {
+            getName1(name){
+                console.log(name);
+            }
+        },
+        mounted() {
+            this.$refs.getName1.$on('getName',this.getName1)	// 收数据方
+        },
+    }
+</script>
+~~~
+
+~~~vue
+<template>
+	<!--如果想给组件加原生事件，需要 .native修饰符。Vue会将这个原生事件绑定到组件最外层的标签上(解释了为什么只可以有一个根标签)-->
+	<school @click.native='xxx'></school>
+</template>
+~~~
+
+#### 解绑
+
+$off()
+
+school.vue
+
+~~~vue
+<template>
+  <div>
+      <h3>学校名称：{{name}}</h3>
+      <h3>学校地址：{{address}}</h3>
+      <button @click="getSchoolName">点我获取学校名</button>
+      <button @click="unbind">点我解绑</button>
+  </div>
+</template>
+<script>
+export default {
+    name: 'School',
+    data() {
+        return {
+            name:'mignzi',
+            address:'dizhi',
+        }
+    },
+    methods: {
+        getSchoolName(){
+            this.$emit('getName',this.name)
+        },
+        unbind(){
+            this.$off('getName')        // 解绑一个
+            this.$off(['getName','xxx'])// 解绑多个
+            this.$off()                 // 解绑所有
+        }
+    },
+}
+</script>
+~~~
+
+#### 总结
+
+1. 一种组件间通信的方式，适用于： 子组件==>父组件
+
+2. 绑定自定义事件
+
+    1. 第一种方式，在父组件中：`<Demo @xxx='test'/>`
+
+    2. 第二种方式，在父组件中
+
+        ~~~js
+        <Demo ref='demo'/>
+        .....
+        mounted(){
+            this.$refs.demo.$on('xxx',this.test)
+        }
+        ~~~
+
+    3. 如果想让自定义事件只触发一次，可以使用`.once`修饰符
+
+3. 触发自定义事件：`this.$emit('xxx',参数)`
+
+4. 解绑自定义事件:`this.$off('xxx')`
+
+5. 组件上可以绑定原生DOM事件，需要使用`.native`修饰符
+
+6. 注意：通过`this.$refs.demo.$on('xxx',this.test)` 绑定自定义事件时，`test` 要么配置在methods中，要么使用箭头函数，否则this的指向会有问题
+
+## 全局事件总线
+
+> 任意组件间通信
+
+main.js
+
+~~~js
+new Vue({
+    el: "#app",
+    render: h => h(App),
+    beforeCreate(){
+    	Vue.prototype.$bus = this   // 安装全局事件总线
+    }
+})
+~~~
+
+school.vue
+
+~~~vue
+<script>
+export default {
+    name: 'School',
+    mounted() {
+        this.$bus.$on('test',(data)=>{  // 监听这个test事件
+            console.log(data);
+        })
+    },
+    beforeDestroy() {
+        this.$bus.$off('test')  // 解绑test事件
+    },
+}
+</script>
+~~~
+
+student.vue
+
+~~~vue
+<template>
+	<div>
+    <button @click="sendStudentName">点我发送</button>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'Student',
+        data() {
+            return {
+                name:'张三',
+                age:19,
+            }
+        },
+        methods: {
+            sendStudentName(){
+                this.$bus.$emit('test',this.name)   // 触发test事件
+            }
+        },
+    }
+</script>
+~~~
+
+1. 一种组件间通信的方式，适用于任意组件间通信
+
+2. 安装全局总线
+
+    ~~~vue
+    new Vue({
+        ......
+        beforeCreate(){
+        	Vue.prototype.$bus = this   // 安装全局事件总线
+        },
+    	......
+    })
+    ~~~
+
+3. 使用事件总线：
+
+    1. 接收数据：A组件想接收数据，则在A组件中给$bus绑定自定义事件，事件的回调留在A组件自身
+
+        ~~~vue
+        methods(){
+        	demo(data){....}
+        },
+        ......
+        mounted(){
+        	this.$bus.$on('xxx',this.demo)
+        }
+        ~~~
+
+    2. 提供数据：`this.$bus.$emit('xxx',数据)`
+
+4. 最好在 beforeDestroy钩子中，用$off去解绑当前组件所用到的事件
+
+#### 解绑问题
+
+1. 如果不是全局总线，需要在绑定方解绑，也就是给谁绑定的，就在它那里解绑
+1. 如果是全局总线，在哪里解绑都可以

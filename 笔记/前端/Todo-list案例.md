@@ -407,3 +407,257 @@ npm i nanoid # 小型版的uuid
 </script>
 ~~~
 
+## 勾选
+
+- 不建议的方法     v-model
+
+~~~vue
+<!--MyItem.vue-->
+<input type="checkbox" v-model='todo.done'/>
+~~~
+
+因为todo是props接受过来的对象，而props是只读，不能修改，但Vue只是检测内存地址，所以更改对象中的一些属性不会引起报错。如果更改的是对象，则会报错
+
+App.vue
+
+~~~vue
+<template>
+  <body>
+<div id="root">
+    <div class="todo-container">
+        <div class="todo-wrap">
+            <my-header :addTodo="addTodo"></my-header>
+            <my-list :todos="todos" :checkTodo="checkTodo"></my-list>
+            <my-footer></my-footer>
+        </div>
+    </div>
+</div>
+
+</body>
+</template>
+
+<script>
+    // 代码...
+    export default {
+        // 代码...
+        methods: {
+            // 代码....
+            checkTodo(id){
+                this.todos.forEach(todo => {
+                    if(todo.id === id){
+                        todo.done = !todo.done
+                    }
+                }
+</script>
+~~~
+
+MyList.vue		需要爷传给父再传给字
+
+~~~vue
+<my-item v-for="todoObj in todos" :key="todoObj.id" :todo="todoObj" :checkTodo="checkTodo"></my-item>
+~~~
+
+MyItem.vue
+
+~~~vue
+<template>
+<li>
+    <label>
+        <input type="checkbox" :checked='todo.done' @click="handleCheck(todo.id)"/>
+        <span>{{todo.title}}</span>
+    </label>
+    <button class="btn btn-danger" style="display:none">删除</button>
+    </li>
+</template>
+
+<script>
+    export default {
+        name: 'MyItem',
+        props: ['todo','checkTodo'],
+        methods: {
+            handleCheck(id){
+                this.checkTodo(id)
+            }
+        },
+    }
+</script>
+~~~
+
+## 删除
+
+- Myitem 更改两个css
+
+~~~css
+li:hover{
+  background-color: #ddd;
+}
+li:hover button{
+  display: block;
+}
+~~~
+
+其他和勾选一样，
+
+App.vue
+
+~~~js
+// 删除一个todo
+deleteTodo(id){
+    this.todos = this.todos.filter((todo)=>{
+        return todo.id !== id
+    })
+}
+~~~
+
+MyItem.vue
+
+~~~vue
+handleDelete(id){
+    if(confirm('确定删除吗？')){
+    	this.deleteTodo(id)
+    }
+}
+~~~
+
+## 底部统计
+
+App.vue 吧 todos传给MyFooter
+
+MyFooter
+
+~~~vue
+<template>
+<div class="todo-footer">
+    <label>
+        <input type="checkbox"/>
+    </label>
+    <span>
+        <span>已完成{{todoDone}}</span> / 全部{{this.todos.length}}
+    </span>
+    <button class="btn btn-danger">清除已完成任务</button>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'MyFooter',
+        props: ['todos'],
+        computed: {
+            todoDone(){
+                let i = 0;
+                this.todos.forEach(todo => {
+                    if(todo.done){
+                        i++;
+                    }
+                });
+                return i;
+            }
+        }
+    }
+</script>
+~~~
+
+## 底部交互
+
+App.vue
+
+~~~vue
+<template>
+  <body>
+<div id="root">
+    .....
+    <my-footer :todos="todos" :checkAllTodo="checkAllTodo" :clearAllTodo="clearAllTodo"></my-footer>
+    .....
+</template>
+
+<script>
+    		// 代码...
+    export default {
+			// 代码...
+        methods: {
+			//代码...
+            
+          // 全选or取消全选
+          checkAllTodo(done){
+            this.todos.forEach((todo)=>{
+              todo.done = done
+            })
+          },
+          // 清除所有已完成
+          clearAllTodo(){
+            this.todos = this.todos.filter((todo)=>{
+              return !todo.done
+            })
+          }
+        },
+    }
+</script>
+~~~
+
+MyFooter.vue
+
+~~~vue
+<template>
+<div class="todo-footer" v-show="todos.length">
+    <label>
+        <!-- <input type="checkbox" :checked="isAll" @click="checkAll"/> -->
+        <input type="checkbox" v-model="isAll"/>
+    </label>
+    <span>
+        <span>已完成{{todoDone}}</span> / 全部{{todos.length}}
+    </span>
+    <button class="btn btn-danger" @click="clearAll">清除已完成任务</button>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'MyFooter',
+        props: ['todos','checkAllTodo','clearAllTodo'],
+        computed: {
+            todoDone(){
+                let i = 0;
+                this.todos.forEach(todo => {
+                    if(todo.done){
+                        i++;
+                    }
+                });
+                return i;
+            },
+            // isAll(){
+            //   return this.todoDone === this.todos.length && this.todos.length > 0
+            // }	计算属性的简略写法
+            isAll:{
+                get(){
+                    return this.todoDone === this.todos.length && this.todos.length > 0
+                },
+                set(value){
+                    this.checkAllTodo(value)
+                }
+            }
+        },
+        methods: {
+            checkAll(e){
+                this.checkAllTodo(e.target.checked)
+            },
+            clearAll(){
+                this.clearAllTodo()
+            }
+        },
+    }
+</script>
+~~~
+
+## 总结
+
+1. 组件化编码流程
+    1. 拆分静态组件：组件要按照功能点拆分，命名不要和html元素冲突
+    2. 实现动态组件：考虑好数据的存放位置，数据是一个组件再用，还是一些组件再用：
+        1. 一个组件再用：放在组件自身即可
+        2. 一些组件再用：放在他们的共同的父组件上
+    3. 实现交互：从绑定事件开始
+2. props使用于：
+    1. 父组件 ==> 子组件	通信
+    2. 子组件 ==> 父组件    通信（要求父先给子一个函数）
+3. 使用 v-model 时要切记：v-model绑定的值不能是props传过来的值，因为props是不可以修改的
+4. props传过来的若是对象类型的值，修改对象中的属性时Vue不会报错，但不要这么这么做

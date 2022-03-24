@@ -274,7 +274,11 @@ key 是虚拟DOM对象的标识，当数据发生变化时，Vue会根据【新�
 
 **v-on**   
 
-`事件`  可以使用简写 "v-on:xxx"==>"@xxxx"
+`事件`  可以使用简写 "v-on='xxx'"==>"@xxxx"
+
+"v-on='xxx'"：不带括号会被默认传 event(事件对象)
+
+"v-on='xxx()'"：带括号无论是否传参，都属于传实参給函数，event(事件对象)就接收不到了，如果又想接收实参，又需要传event(事件对象)，需要手动传入event  **`v-on='xxx($event,value)'`**
 
 ~~~html
 <div id="app">
