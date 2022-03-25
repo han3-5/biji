@@ -327,3 +327,30 @@ position：fixed
 #### z-index
 
 图层概念。默认是与父级相同，可以为负数，可以无限制高
+
+## 动画
+
+#### animate
+
+~~~bash
+npm install animate.css
+# 随便找个地方下载下来，然后把其中的animate.css拷贝出来
+~~~
+
+~~~html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Document</title>
+        <!--引入-->
+        <link rel="stylesheet" type="text/css" href="./animate.css"/>
+    </head>
+    <body>
+        <h1 
+            /* animate__官网说要加上 */	/*animated fadeInDown(动画名) infinite(加上就一直，不加就播放一遍)*/
+            class="animate__animated animate__fadeInDown animate__infinite" 
+            style="background-color: red;">An animated element</h1>
+    </body>
+</html>
+~~~
+

@@ -661,3 +661,79 @@ MyFooter.vue
     2. 子组件 ==> 父组件    通信（要求父先给子一个函数）
 3. 使用 v-model 时要切记：v-model绑定的值不能是props传过来的值，因为props是不可以修改的
 4. props传过来的若是对象类型的值，修改对象中的属性时Vue不会报错，但不要这么这么做
+
+## 编辑
+
+App.vue
+
+~~~
+methods:{
+    updataTodo(id,title){
+        this.todos.forEach((todo)=>{
+            if(todo.id === id){
+                todo.title = title
+            }
+        })
+    }
+},
+mounted() {
+	this.$bus.$on('test',this.updataTodo)
+},
+beforeDestroy() {
+	this.$bus.$off('test')
+},
+~~~
+
+MyItem.vue
+
+~~~vue
+<template>
+    <li>
+        <label>
+            <input type="checkbox" :checked='todo.done' @click="handleCheck(todo.id)"/>
+            <span v-show="!todo.isEdit">{{todo.title}}</span>
+            <input type="text" :value="todo.title" v-show="todo.isEdit" @blur="handleEnter(todo,$event)" ref="inputTitle">
+        </label>
+    <button class="btn btn-danger" @click="handleDelete(todo.id)">删除</button>
+    <button class="btn btn-danger" @click="handleUpdate(todo)" v-show="!todo.isEdit">编辑</button>
+    </li>
+</template>
+
+<script>
+    export default {
+        name: 'MyItem',
+        props: ['todo','checkTodo','deleteTodo'],
+        methods: {
+          handleCheck(id){
+            this.checkTodo(id)
+          },
+          handleDelete(id){
+            if(confirm('确定删除吗？')){
+              this.deleteTodo(id)
+            }
+          },
+          handleUpdate(todo){
+            if(todo.hasOwnProperty('isEdit')){
+                todo.isEdit = true
+              }else{
+                this.$set(todo,'isEdit',true)
+              }
+            this.$nextTick(function(){
+              this.$refs.inputTitle.focus()
+            })
+          },
+          // 真正执行修改的逻辑
+          handleEnter(todo,e){
+            todo.isEdit = false
+           // 校验数据
+            if(e.target.value.trim() === ''){
+                alert('输入不能为空')
+                return
+            }
+            this.$bus.$emit('test',todo.id,e.target.value)
+          }
+        },
+    }
+</script>
+~~~
+

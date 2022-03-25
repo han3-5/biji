@@ -395,7 +395,7 @@ public static SqlSession getSqlSession(){
 
 #### Mybatis详细执行过程
 
-![](./iamges/01.jpg)
+![](./iamges/ssm01.jpg)
 
 #### 核心配置文件
 
