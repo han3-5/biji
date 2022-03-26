@@ -1031,3 +1031,418 @@ export default {
 
 ## vuex
 
+> 专门在Vue中实现集中式状态（数据）管理的一个Vue插件
+
+1. 多个组件依赖于同一状态
+2. 来自不同组件的行为需要变更同一状态
+3. 使用时机：多个组件需要共享数据时
+
+![vuex原理图](./images/vuex.png)
+
+#### 安装
+
+2022.2.7，vue3成为了默认版本。npm i vuex安装的就是vue3中最新的vuex4版本，只能在vuex3中使用。简言之 vue2要用vuex3版本，vue3用vuex4版本
+
+> npm i vuex@3
+
+1. 创建文件：`src/store/idnex.js`
+
+~~~js
+// 改文件用于创建Vuex中最为核心的store
+
+import Vue from 'vue'
+// 引入Vuex
+import Vuex from 'vuex'
+// 应用插件
+Vue.use(Vuex)
+// 准备actions --用于响应组件中的动作
+const actions = {}
+// 准备mutations --用于操作数据(state)
+const mutations = {}
+// 准备state --用于存储数据
+const state = {}
+
+// 创建并暴露store
+export default new Vuex.Store({
+    actions:actions,
+    mutations:mutations,
+    state:state
+})
+~~~
+
+2. 在`main.js`中创建vm时传入`store` 的配置项
+3. 为什么不在`main.js` 中使用插件，而在`../store/index.js` 中使用？是因为import导入会被优先执行，而插件没被应用，会报错
+
+#### 求和案例
+
+main.js
+
+~~~js
+import Vue from 'vue'
+import App from './App.vue'
+import Vuex from 'vuex'
+import store from './store/index'
+Vue.config.productionTip = false
+new Vue({
+  render: h => h(App),
+  store,
+}).$mount('#app')
+~~~
+
+App.vue
+
+~~~vue
+导入使用Count.vue
+~~~
+
+Count.vue
+
+~~~vue
+<template>
+  <div>
+      <h1>当前求和为：{{$store.state.sum}}</h1>
+      <select v-model.number="n">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+      </select>
+      <button @click="add">+</button>
+      <button @click="jian">-</button>
+      <button @click="jiadd">当前求和为奇数再加</button>
+      <button @click="waitadd">等一等再加</button>
+  </div>
+</template>
+<script>
+export default {
+    name: 'Count',
+    data() {
+        return {
+            n:1,//用户选择的数字
+        }
+    },
+    methods: {
+        add(){
+            this.$store.commit('JIA',this.n)    // 可以在这直接调用commit通信mutations
+        },
+        jian(){
+            this.$store.commit('JIAN',this.n)
+        },
+        jiadd(){
+            this.$store.dispatch('jishujia',this.n)
+        },
+        waitadd(){
+            this.$store.dispatch('waitjia',this.n)
+        }
+    },
+    mounted() {
+        console.log(this)
+    },
+}
+</script>
+~~~
+
+store/index.js
+
+~~~js
+.....
+const actions = {
+    jishujia(context,value){
+        if(context.state.sum % 2 ){
+            context.commit('JIA',value)
+        }
+    },
+    waitjia(context,value){
+        setTimeout(()=>{
+            context.commit('JIA',value)
+        },500)
+    }
+}
+const mutations = {
+    JIA(context,value){
+        console.log(context,value);
+        state.sum += value
+    },
+    JIAN(context,value){
+        state.sum -= value
+    }
+}
+const state = {
+    sum: 0,
+}
+........
+~~~
+
+1. 组件中读取vuex中的数据：`$store.state.sum`
+2. 组件中修改vuex中的数据：`$store.dispatch('action中的方法名',数据)` 或者 `$store.commit('mutations中的方法名',数据)`
+
+#### getters
+
+> 有点像计算属性
+
+1. 概念：当state中的数据需要加工后在使用，可以使用getters加工
+2. 在`store/index.js` 中追加 `getters` 配置
+3. 组件读取数据 `$store.getters.bigSum`
+
+~~~js
+// 准备getters --用于加工state中的数据
+const getters = {
+    bigSum(state){
+        return state.sum *10
+    }
+}
+~~~
+
+#### mapxxxxx
+
+> mapState方法：用于帮助我们映射`state` 中的数据为计算属性
+>
+> getters方法：用于帮助我们映射`getters` 中的数据为计算属性
+
+本来的写法
+
+~~~js
+// $store.state.sum 太长了
+computed:{
+    sum(){return this.$store.state.sum}
+}
+~~~
+
+使用mapxxx的写法
+
+~~~js
+import {mapState} from 'vuex'	// 先导入
+computed:{
+    // 借助mapState生成计算属性，从state中读取数据(对象写法)
+    ...mapState({sum:'sum',xxxxx})	// mapxxx是个对象 ...是ES6语法
+    // 借助mapState生成计算属性，从state中读取数据(数组写法)
+    ...mapState(['sum'])	// 这个sum必须在state中存在，不然找不到
+}
+~~~
+
+> mapActions方法：用于帮助我们生成与`actions` 对话的方法，即包含`$store.dispatch(xxx)的函数`
+>
+> mapMutations方法：用于帮助我们生成与`mutations` 对话的方法，即包含`$store.commit(xxx)的函数`
+
+之前的写法
+
+~~~html
+<button @click="add">+</button>
+<button @click="waitadd">等一等再加</button>
+<script>
+    ......
+    methods:{
+            add(){
+            this.$store.commit('JIA',this.n)    //这边相当于调用mutations
+        },
+            waitadd(){
+            this.$store.dispatch('waitjia',this.n)
+        }
+    }
+</script>
+~~~
+
+使用mapxxxx的写法
+
+~~~html
+<!--需要手动传参，不然会把$event传过去-->
+<button @click="add(n)">+</button>			  <!--@click=JIA(n) 数组写法-->
+<button @click="waitadd(n)">等一等再加</button> <!--@click=waitjia(n) 数组写法-->
+<script>
+    ......
+    methods:{
+            ...mapMutations({'add':'JIA',xxxx}),		// 对象写法
+          //...mapMutations(['JIA'])			// 数组写法，但需要保证上方的事件名和mutations保持一致
+        },
+            ...mapActions({'waitadd':'waitjia',xxxx}),		// 对象写法
+          //...mapActions(['waitjia'])					// 数组写法，但需要保证上方的事件名和actions保持一致
+        }
+    }
+</script>
+~~~
+
+#### 模块化
+
+index.js
+
+~~~js
+import Vue from 'vue'
+// 引入Vuex
+import Vuex from 'vuex'
+// 应用插件
+Vue.use(Vuex)
+const countAbout = {
+    namespaced:true,	// 不要忘记命名空间
+    actions:{
+        jishujia(context,value){
+            if(context.state.sum % 2 ){
+                context.commit('JIA',value)
+            }
+        },
+        waitjia(context,value){
+            setTimeout(()=>{
+                context.commit('JIA',value)
+            },500)
+        }
+    },
+    mutations:{
+        JIA(context,value){
+            console.log(context,value);
+            this.state.countAbout.sum += value
+        },
+        JIAN(context,value){
+            this.state.countAbout.sum -= value
+        }
+    },
+    state:{
+        sum: 0,
+    },
+    getters:{
+        bigSum(state){
+            return state.sum *10
+        }
+    }
+}
+export default new Vuex.Store({
+    modules:{	// 不要忘记modules
+        countAbout:countAbout,
+    }
+})
+~~~
+
+Count.vue			
+
+~~~html
+<template>
+  <div>
+      <h1>当前求和为：{{sum}}</h1>
+      <h1>当前方法十倍为：{{bigSum}}</h1>
+      <select v-model.number="n">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+      </select>
+      <button @click="add(n)">+</button>
+      <button @click="jian(n)">-</button>
+      <button @click="jiadd(n)">当前求和为奇数再加</button>
+      <button @click="waitadd(n)">等一等再加</button>
+  </div>
+</template>
+~~~
+
+原生写法
+
+~~~vue
+<script>
+export default {
+    name: 'Count',
+    data() {
+        return {
+            n:1,
+        }
+    },
+    computed: {
+        sum(){
+            return this.$store.state.countAbout.sum
+        },
+        bigSum(){
+            return this.$store.getters['countAbout/bigSum']
+        },
+    },
+    methods: {
+        add(){
+            this.$store.commit('countAbout/JIA',this.n)
+        },
+        jian(){
+            this.$store.commit('countAbout/JIAN',this.n)
+        },
+        jiadd(){
+            this.$store.dispatch('countAbout/jishujia',this.n)
+        },
+        waitadd(){
+            this.$store.dispatch('countAbout/waitjia',this.n)
+        }
+    },
+    mounted() {
+        console.log(this)
+    },
+}
+</script>
+~~~
+
+使用mapxxxx写法
+
+~~~vue
+<script>
+import {mapState,mapMutations,mapActions, mapGetters} from 'vuex'
+export default {
+    name: 'Count',
+    data() {
+        return {
+            n:1,
+        }
+    },
+    computed: {
+        ...mapState('countAbout',{sum:'sum'}),
+         ...mapGetters('countAbout',{bigSum:'bigSum'})
+    },
+    methods: {
+        ...mapMutations('countAbout',{'add':'JIA','jian':'JIAN'}),
+        ...mapActions('countAbout',{'jiadd':'jishujia','waitadd':'waitjia'})
+    },
+    mounted() {
+        console.log(this)
+    },
+}
+</script>
+~~~
+
+#### 模块化总结
+
+1. 目的：让代码更好维护，让多种数据分类更加明确
+
+2. 开启命名空间后，组件中读取state数据：
+
+    ~~~js
+    // 方式一：自己直接读取
+    this.$store.state.xxxx.data
+    // 方式二：借助mapstate读取
+    ...mapState('xxx',{'':'',····})
+    ~~~
+
+3. 开启命名空间后，组件中读取getters数据：
+
+    ~~~js
+    // 方式一：自己直接读取
+    this.$store.getters['xxxx/bigSum']
+    // 方式二：借助mapGetters读取
+    ...mapGetters('xxxxx',{bigSum:'bigSum'})
+    ~~~
+
+4. 开启命名空间后，组件中调用dispatch：
+
+    ~~~js
+    // 方式一：自己直接dispatch
+    this.$store.dispatch('xxx/jishujia',数据)
+    // 方式二：借助mapActions
+    ...mapActions('xxxx',{'jiadd':'jishujia','waitadd':'waitjia'})
+        },
+    ~~~
+
+5. 开启命名空间后，组件中调用commit：
+
+    ~~~js
+    // 方式一：自己直接commit
+    this.$store.commit('xxxx/JIA',数据)
+    // 方式二：借助mapMutations
+    ...mapMutations('xxxxx',{'add':'JIA','jian':'JIAN'}),
+    ~~~
+
+## 路由
+
+> vue的路由是一个插件库
+
+一个路由就是一组映射关系（key - value）key是路径，value可你是function或component
+
+前端路由：value是component，用于展示页面内容
+
+后端路由：value是function，用于处理客户端提交的请求
