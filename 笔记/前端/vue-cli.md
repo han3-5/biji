@@ -1071,6 +1071,18 @@ export default new Vuex.Store({
 ~~~
 
 2. 在`main.js`中创建vm时传入`store` 的配置项
+
+~~~js
+import Vue from 'vue'
+import App from './App.vue'
+import store from './store/index'
+Vue.config.productionTip = false
+new Vue({
+  render: h => h(App),
+  store,
+}).$mount('#app')
+~~~
+
 3. 为什么不在`main.js` 中使用插件，而在`../store/index.js` 中使用？是因为import导入会被优先执行，而插件没被应用，会报错
 
 #### 求和案例
@@ -1446,3 +1458,365 @@ export default {
 前端路由：value是component，用于展示页面内容
 
 后端路由：value是function，用于处理客户端提交的请求
+
+#### 安装
+
+2022.2.7，vue3成为了默认版本。npm i vue-router安装的就是vue3中最新的vue-router4版本，只能在vuex3中使用。简言之 vue2要用vue-router3版本，vue3用vue-router4版本
+
+> npm i vue-router@3
+
+1. 创建文件：`src/router/idnex.js`
+
+~~~js
+// 改文件专门用于创建整个应用的路由器
+import VueRouter from "vue-router"; 
+// 引入组件
+import About from '../components/About.vue'
+import Home from '../components/Home.vue'
+// 创建并暴露一个路由器
+export default new VueRouter({
+    routes:[
+        {
+            path:'/about',
+            component: About
+        },
+        {
+            path:'/home',
+            component: Home
+        }
+    ]
+})
+~~~
+
+2. 在`main.js`中创建vm时传入`router` 的配置项
+
+~~~js
+import Vue from 'vue'
+import App from './App.vue'
+import router from './router'
+import VueRouter from 'vue-router'
+Vue.config.productionTip = false
+Vue.use(VueRouter)
+new Vue({
+  render: h => h(App),
+  router,
+}).$mount('#app')
+~~~
+
+3. 在需要使用的地方实现路由切换和呈现的位置
+
+~~~html
+<!-- 原始html中我们使用a标签实现页面的跳转 -->
+<!-- <a class="list-group-item" href="./about.html">About</a>
+<a class="list-group-item active" href="./home.html">Home</a> -->
+
+<!-- Vue中借助router-link标签实现路由的切换 -->
+<router-link class="list-group-item" active-class="active" to="/about">About</router-link>
+<router-link class="list-group-item" active-class="active" to="/home">Home</router-link>
+
+<!-- 指定组件的呈现位置 -->
+<router-view></router-view>
+~~~
+
+路由使用注意点：
+
+1. 路由组件通常放在`pages`文件夹下，一般组件通常放在`components` 文件夹
+2. 通过切换，路由组建不是被隐藏了，而是被**销毁掉了**，需要时在挂载
+3. 每个组件都有自己的`$route` 属性，里面存储着自己的路由信息
+4. 整个应用只有一个router，可以通过组件的`$router` 属性获取到
+
+#### 嵌套(多级)路由
+
+1. 配置路由规则，使用children配置项：
+
+~~~js
+routes:[
+    {
+        path:'/about',
+        component: About
+    },
+    {
+        path:'/home',
+        component: Home,
+        children: [
+            {
+                path:'news',//不是一级路由不要加'/'
+                component: News
+            },
+            {
+                path:'message',
+                component: Message
+            }
+        ]
+    }
+]
+~~~
+
+2. 跳转（要写完整路径）：
+
+~~~html
+<router-link class="list-group-item" active-class="active" to="/home/news">News</router-link>
+~~~
+
+#### 路由命名和元数据
+
+**路由命名**
+
+作用：可以简化路由的跳转
+
+~~~js
+routes:[
+    ..................
+    children: [
+        {   
+            name: 'test',	// 给路由命名
+            path: 'detail',
+            component: Detail
+        }
+    ]
+    ..................
+]
+~~~
+
+简化跳转：
+
+~~~html
+<!--简化前-->
+<router-link :to="{path:'/home/message/detail'}"></router-link>
+<!--简化后-->
+<router-link :to="{name:'test'}"></router-link>
+~~~
+
+**路由元数据**
+
+~~~js
+routes:[
+    {
+        path:'/about',
+        component: About,
+        meta: {title : '123'}	// 可以看成data
+    },
+]
+~~~
+
+#### 路由传参
+
+**使用`$route.query.xxx` 进行传参**
+
+1. 传递参数
+
+~~~html
+<!-- 跳转路由并携带query参数，to的字符串写法 -->
+<router-link :to="`/home/message/detail?id=${item.id}&title=${item.title}`">{{item.title}}</router-link>
+<!-- 跳转路由并携带query参数，to的对象写法 -->
+<router-link :to="{
+                  path:'/home/message/detail',
+                  query:{
+                  id: item.id,
+                  title:item.title }
+                  }">{{item.title}}</router-link>
+~~~
+
+2. 接收参数
+
+~~~js
+$route.query.xxx
+~~~
+
+**使用`params` 进行传参**
+
+1. 路由配置
+
+~~~js
+routes:[
+    ..................
+    children: [
+        {   
+            name: 'test',	// 给路由命名
+            path: 'detail/:id/:title',  // 使用占位符接收params参数
+            component: Detail
+        }
+    ]
+    ..................
+]
+~~~
+
+2. 传递参数
+
+~~~html
+<!-- 跳转路由并携带params参数，to的字符串写法 -->
+<router-link :to="`/home/message/detail/${item.id}/${item.title}}`">{{item.title}}</router-link>
+<!-- 跳转路由并携带params参数，to的对象写法 -->
+<router-link :to="{
+                  name:'test',    // 如果是对象写法，params不能用path必须用name
+                  params:{
+                  id: item.id,
+                  title:item.title }
+                  }">{{item.title}}</router-link>
+~~~
+
+3. 接收参数
+
+~~~js
+$route.params.xxx
+~~~
+
+**使用`props配置`进行传参**
+
+作用：让路由组建更方便的收到参数
+
+~~~js
+children: [
+    {   
+        name: 'test',
+        path: 'detail',	// 配合第二种写法：  path: 'detail/:id/:title',
+        component: Detail,
+        // 第一种写法：props值为对象，该对象中所有的key-value的组合最终都会通过props传给Detail组件
+        props:{a:10,b:20}   // 值被写死了
+        // 第二种写法：props值为布尔值，布尔值为true，则把路由收到的所有params参数通过props传给Detail组件
+        props:true
+        // 第三种写法：props值为函数，该函数返回的对象中每一组key-value都会通过props传给Detail组件
+        props($route){
+            return {id:$route.query.id,title:$route.query.title}
+        }
+    }
+]
+~~~
+
+~~~js
+export default {
+    name: 'Detail',
+    props:['id','title']	// 接收
+}
+~~~
+
+#### replace属性
+
+1. 作用：控制路由跳转时操作浏览器历史记录的模式
+
+2. 浏览器的历史记录有两种写入方式：分别是`push` 和 `replace`，`push` 是追加历史记录，`replace` 是替换当前记录。路由跳转默认为 `push`
+
+3. 开启`replace` 模式：
+
+    ~~~html
+    <router-link replace  active-class="active" to="/about">About</router-link>
+    ~~~
+
+#### 编程式路由导航
+
+1. 作用：不借助`<router-link>` 实现路由跳转，让路由跳转更加灵活
+2. 具体编码：
+
+之前
+
+~~~html
+<router-link :to="{
+                  name:'test',
+                  params:{
+                  id: item.id,
+                  title:item.title }
+                  }">{{item.title}}</router-link>
+~~~
+
+~~~js
+// $router的两个API
+methods:{
+    pushShow(item){
+        this.$router.push({
+            name:'test',
+            params:{
+                id: item.id,
+                title:item.title }
+        })
+    },
+     pushShow(item){
+         this.$router.replace({
+             name:'test',
+             params:{
+                 id: item.id,
+                 title:item.title }
+        })
+    },
+}
+this.$router.forward()	// 前进
+this.$router.back()		// 后退
+this.$router.go(x)		// 可前进也可后退，x正数则前进x步，x负数则后退x步
+~~~
+
+#### 缓存路由组件
+
+1. 作用：让不展示的路由保持挂载，不被销毁
+2. 具体编码：
+
+~~~html
+<!--include="组件名"-->
+<keep-alive :include="['news']"><!--可以缓存多个-->
+<keep-alive include="news">
+    <router-view></router-view>
+</keep-alive>
+~~~
+
+#### 路由独有的生命周期钩子
+
+1. 作用：路由组件所独有的两个钩子，用于捕获路由组件的激活状态
+2. 具体：
+    1. `activated` 路由组件被激活时触发
+    2. `deactivated` 路由组件失活时触发
+
+#### 路由守卫（权限）
+
+1. 作用：对路由进行权限控制
+2. 分类：全局守卫、独享守卫、组件内守卫
+
+**全局守卫**
+
+~~~js
+// 全局前置路由守卫--初始化的时候被调用、每次路由切换之前被调用
+router.beforeEach((to,from,next)=>{
+    console.log(to,from);
+    if(to.name === 'xinwen' || to.name === 'xiaoxi'){
+        alert('不给进')
+    }else{
+        next()
+    }
+})
+// 全局后置路由守卫--初始化的时候被调用、每次路由切换之后被调用
+router.afterEach((to,from)=>{
+    document.title = to.meta.title  // 进到一个页面之后改title
+})
+~~~
+
+**独享守卫**
+
+> 某个路由独享的守卫，写在相应的路由里。**只有前置独享守卫**
+
+~~~js
+beforEnter(to,from,next){
+    // 代码...
+}
+~~~
+
+组件内守卫
+
+~~~js
+// 进入守卫：通过路由规则，进入该组件时被调用。必须是通过路由才有效
+beforeRouteEnter(to,from,next){  
+}
+// 离开守卫：通过路由规则，离开该组件时被调用。必须是通过路由才有效
+beforeRouteLeave(to,from,next){
+}
+~~~
+
+#### 两种工作模式
+
+1. 对于一个url来说，什么是 hash值：# 及其后面的内容就是hash值
+2. hash值不会包含在http请求中，即：hash值不会带给服务器
+3. hash模式：
+    1. 地址中永远带着 `#` 号，不美观
+    2. 若以后将地址通过第三方手机app分享，若app检验严格，则地址会被标记为不合法
+    3. 兼容性较好
+4. history模式：
+    1. 地址干净，美观
+    2. 兼容性比hash模式相比略差
+    3. 应用部署上线时需要后端支持，解决刷新页面报404错误
+

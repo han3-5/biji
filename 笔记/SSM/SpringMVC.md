@@ -156,7 +156,7 @@ Spring MVC 是Spring Framework的一部分，是基于Java实现MVC的轻量级W
 
 ## SpringMVC 执行原理
 
-**执行流程：**![image-20220311151320958](./iamges/02.png)
+**执行流程：**![image-20220311151320958](./iamges/ssm02.png)
 
 **分析流程：**
 
