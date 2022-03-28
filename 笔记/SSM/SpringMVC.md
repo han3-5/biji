@@ -103,7 +103,9 @@ Spring MVC 是Spring Framework的一部分，是基于Java实现MVC的轻量级W
 2. 配置springxxxx.xml
 
     ~~~xml
+    <!--处理器映射器-->
     <bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"/>
+    <!--处理器适配器-->
     <bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>
     <!--视图解析器：DispatcherServlet 給他的ModelAndView-->
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver" id="internalResourceViewResolver">

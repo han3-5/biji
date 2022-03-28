@@ -49,6 +49,8 @@
 
 新建一个maven项目，记得配置好引用的设置，存储的仓库
 
+![](./images/maven01.png)
+
 **porm.xml**   --Maven的核心文件
 
 ~~~xml

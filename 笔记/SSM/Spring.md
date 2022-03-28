@@ -580,6 +580,45 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
     }
     ~~~
 
+**组件扫描**
+
+- 实体类
+
+~~~java
+@Component	
+public class Stu {
+    @Value("zzzz")
+    private String  name;
+    private int age;
+    private String sex;
+    // 省略get,set...
+}
+~~~
+
+- 配置类
+
+~~~java
+@Configuration
+@ComponentScan("test")
+public class StuConfig {
+}
+~~~
+
+- 测试
+
+```java
+ApplicationContext context = new AnnotationConfigApplicationContext(StuConfig.class);
+Stu stu = context.getBean("stu", Stu.class);
+System.out.println(stu);
+```
+
+组件扫描和@Bean方式保存对象的区别：
+
+1. @Bean可以手动选择调用哪个构造方法，组件扫描默认调用无参构造
+2. @Bean有机会给对象的属性赋值，组件扫描方式没有（只能在声明属性的时候赋值 或者 编写无参构造时，在构造方法中为属性赋值）
+3. 赋值的灵活性@Bean更好
+4. 组件扫描的代码量少
+
 ## 代理模式
 
 这是Spring AOP底层
@@ -616,7 +655,7 @@ JavaConfig 是Spring 的一个子项目，Spring4之后成为了核心功能
 
 **Proxy 用来生成动态代理实例**
 
-**InvocationHandler 用来条用处理程序并返回结果**
+**InvocationHandler 用来调用处理程序并返回结果**
 
 - 抽象角色：一般会使用接口或者抽象类来表示
 

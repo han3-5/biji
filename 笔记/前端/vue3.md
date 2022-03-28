@@ -98,11 +98,54 @@ npm install
 npm run dev
 ```
 
+## vue3的工程结构
+
+main.js
+
+~~~js
+// 2.0
+import Vue from 'vue'
+import App from './App.vue'
+Vue.config.productionTip = false
+new Vue({
+    el: "#app",
+    render: h => h(App),
+})
+// 3.0
+// 引入的不再是Vue构造函数，引入的是一个名为createApp的工厂函数
+import { createApp } from 'vue'
+import App from './App.vue'
+
+createApp(App).mount('#app')
+~~~
+
+**vue3组件中的模板结构可以没有根标签**
+
 # 二、常用 Composition API
 
 官方文档: https://v3.cn.vuejs.org/guide/composition-api-introduction.html
 
 ## 1.拉开序幕的setup
+
+~~~js
+export default {
+  name: 'App',
+  setup() {
+    // 数据
+    let name = '张三'
+    let age = 18
+    //方法
+    function sayHello(){
+      alert(`我叫${name},我${age}岁`)
+    }
+    return {
+      name,
+      age,
+      sayHello
+    }
+  }
+}
+~~~
 
 1. 理解：Vue3.0中一个新的配置项，值为一个函数。
 2. setup是所有<strong style="color:#DD5145">Composition API（组合API）</strong><i style="color:gray;font-weight:bold">“ 表演的舞台 ”</i>。
@@ -119,6 +162,30 @@ npm run dev
 
 ##  2.ref函数
 
+~~~js
+import {ref}  from 'vue'	// 不要忘记引入ref
+export default {
+  name: 'App',
+  setup() {
+    // 数据
+    let name = ref('张三')
+    let age = ref(18)
+    let job = ref({	// 是个对象
+        type: '工程师',
+        qian: '30k'
+    })
+    //方法
+    function changeInfo(){
+        name.value = '李四',
+        age.value = 20,
+        job.value.type = '设计师',		// 修改对象里面的具体的值
+        job.value.qian = '50k'
+    }
+    return {name,age,changeInfo}
+  }
+}
+~~~
+
 - 作用: 定义一个响应式的数据
 - 语法: ```const xxx = ref(initValue)``` 
   - 创建一个包含响应式数据的<strong style="color:#DD5145">引用对象（reference对象，简称ref对象）</strong>。
@@ -130,6 +197,30 @@ npm run dev
   - 对象类型的数据：内部 <i style="color:gray;font-weight:bold">“ 求助 ”</i> 了Vue3.0中的一个新函数—— ```reactive```函数。
 
 ## 3.reactive函数
+
+~~~js
+import {ref,reactive}  from 'vue'
+export default {
+  name: 'App',
+  setup() {
+    // 数据
+    let name = ref('张三')
+    let age = ref(18)
+    let job = reactive({
+      type: '工程师',
+      qian: '30k'
+    })
+    //方法
+    function changeInfo(){
+      name.value = '李四',
+      age.value = 20,
+      job.type = '设计师',
+      job.qian = '50k'
+    }
+    return {name,age,job,changeInfo}
+  }
+}
+~~~
 
 - 作用: 定义一个<strong style="color:#DD5145">对象类型</strong>的响应式数据（基本类型不要用它，要用```ref```函数）
 - 语法：```const 代理对象= reactive(源对象)```接收一个对象（或数组），返回一个<strong style="color:#DD5145">代理对象（Proxy的实例对象，简称proxy对象）</strong>
@@ -160,12 +251,16 @@ npm run dev
 
 - 实现原理: 
   - 通过Proxy（代理）:  拦截对象中任意属性的变化, 包括：属性值的读写、属性的添加、属性的删除等。
+  
   - 通过Reflect（反射）:  对源对象的属性进行操作。
+  
+      简单来说使用Reflect就可以不用写一堆一堆的try catch
+  
   - MDN文档中描述的Proxy与Reflect：
     - Proxy：https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy
-    
+  
     - Reflect：https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect
-    
+  
       ```js
       new Proxy(data, {
       	// 拦截读取属性值
@@ -204,6 +299,13 @@ npm run dev
   - 在beforeCreate之前执行一次，this是undefined。
   
 - setup的参数
+  
+  ~~~js
+  setup(props){
+      // 代码
+  }
+  ~~~
+  
   - props：值为对象，包含：组件外部传递过来，且组件内部声明接收了的属性。
   - context：上下文对象
     - attrs: 值为对象，包含：组件外部传递过来，但没有在props配置中声明的属性, 相当于 ```this.$attrs```。
@@ -224,11 +326,11 @@ npm run dev
   
   setup(){
       ...
-  	//计算属性——简写
+  	//计算属性——简写(没有考虑计算属性被修改的情况)
       let fullName = computed(()=>{
           return person.firstName + '-' + person.lastName
       })
-      //计算属性——完整
+      //计算属性——完整(考虑读和写)
       let fullName = computed({
           get(){
               return person.firstName + '-' + person.lastName
@@ -249,10 +351,19 @@ npm run dev
 - 两个小“坑”：
 
   - 监视reactive定义的响应式数据时：oldValue无法正确获取、强制开启了深度监视（deep配置失效）。
-  - 监视reactive定义的响应式数据中某个属性时：deep配置有效。
+  - 监视reactive定义的响应式数据中某个属性（这个属性是个对象）时：deep配置有效。
   
   ```js
-  //情况一：监视ref定义的响应式数据
+  import {reactive,watch,ref} from 'vue' 
+  setup() {
+      let person =reactive({
+          name: '张三',
+          age: '18',
+          job:{
+              salery:20
+          }
+      })
+  //情况一：监视ref定义的响应式数据	watch(xx,()=>{})xx代表想监视谁
   watch(sum,(newValue,oldValue)=>{
   	console.log('sum变化了',newValue,oldValue)
   },{immediate:true})
@@ -283,7 +394,7 @@ npm run dev
   //特殊情况
   watch(()=>person.job,(newValue,oldValue)=>{
       console.log('person的job变化了',newValue,oldValue)
-  },{deep:true}) //此处由于监视的是reactive素定义的对象中的某个属性，所以deep配置有效
+  },{deep:true}) //此处由于监视的是reactive定义的对象中的某个属性(这个属性是个对象)，所以deep配置有效
   ```
 
 ### 3.watchEffect函数
@@ -346,12 +457,26 @@ npm run dev
 
 
 
-1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 - Vue3.0中可以继续使用Vue2.x中的生命周期钩子，但有有两个被更名：
   - ```beforeDestroy```改名为 ```beforeUnmount```
   - ```destroyed```改名为 ```unmounted```
-- Vue3.0也提供了 Composition API 形式的生命周期钩子，与Vue2.x中钩子对应关系如下：
+- Vue3.0也提供了 Composition API 形式（放到setup()中）的生命周期钩子，与Vue2.x中钩子对应关系如下：
   - `beforeCreate`===>`setup()`
   - `created`=======>`setup()`
   - `beforeMount` ===>`onBeforeMount`
