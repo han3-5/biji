@@ -488,15 +488,46 @@ export default {
 
 ## 9.自定义hook函数
 
+在`src` 下新建`hooks` 用来放hook
+
+hooks/test.js
+
+~~~js
+export default function(){	// hook 是个函数！
+    let a = 10
+    function show1(){
+        console.log("nihaoa");
+    }
+    return show1()		// 函数就需要有返回值
+}
+~~~
+
+demo.vue
+
+~~~js
+import useTest from '../hooks/test'
+.....
+	useTest()
+.....
+~~~
+
 - 什么是hook？—— 本质是一个函数，把setup函数中使用的Composition API进行了封装。
-
 - 类似于vue2.x中的mixin。
-
 - 自定义hook的优势: 复用代码, 让setup中的逻辑更清楚易懂。
 
-
-
 ## 10.toRef
+
+~~~js
+// 之前写法
+{{person.name}}
+// 使用toRef写法
+{{name}}
+import {toRef} from 'vue'
+// 代码....
+return {
+    name: toRef(person.name)
+}
+~~~
 
 - 作用：创建一个 ref 对象，其value值指向另一个对象中的某个属性。
 - 语法：```const name = toRef(person,'name')```
@@ -505,6 +536,11 @@ export default {
 
 - 扩展：```toRefs``` 与```toRef```功能一致，但可以批量创建多个 ref 对象，语法：```toRefs(person)```
 
+~~~js
+// toRefs(person) 直接返回会报错
+return{toRefs(person)}		// 会报错
+return{...toRefs(person)}	// 不会报错
+~~~
 
 # 三、其它 Composition API
 
@@ -518,6 +554,11 @@ export default {
   -  如果有一个对象数据，后续功能不会修改该对象中的属性，而是生新的对象来替换 ===> shallowRef。
 
 ## 2.readonly 与 shallowReadonly
+
+~~~js
+person = readonly(person)
+person = shallowReadonly(person)
+~~~
 
 - readonly: 让一个响应式数据变为只读的（深只读）。
 - shallowReadonly：让一个响应式数据变为只读的（浅只读）。
@@ -599,7 +640,7 @@ export default {
      setup(){
      	......
          let car = reactive({name:'奔驰',price:'40万'})
-         provide('car',car)
+         provide('test',car) // 给后代传数据provide('名字',数据)
          ......
      }
      ```
@@ -609,7 +650,7 @@ export default {
      ```js
      setup(props,context){
      	......
-         const car = inject('car')
+         const car = inject('test')
          return {car}
      	......
      }
@@ -719,7 +760,7 @@ export default {
     				<Child/>
     			</template>
     			<template v-slot:fallback>
-    				<h3>加载中.....</h3>
+    				<h3>如果网速过慢，<Child>没出来。会展示此处信息</h3>
     			</template>
     		</Suspense>
     	</div>
@@ -798,7 +839,18 @@ export default {
 
 - <strong style="color:#DD5145">移除</strong>keyCode作为 v-on 的修饰符，同时也不再支持```config.keyCodes```
 
+    ~~~js
+    @keyup.13	// 这种写法就是keyCode
+    // config.keyCodes 是自定义的按键事件
+    ~~~
+
 - <strong style="color:#DD5145">移除</strong>```v-on.native```修饰符
+
+  ~~~js
+  v-on:click.native="xx" 	// 告诉vue这个是原生
+  ~~~
+
+  
 
   - 父组件中绑定事件
 
