@@ -85,7 +85,9 @@ vite官网：https://vitejs.cn
   - 真正的按需编译，不再等待整个应用编译完成。
 - 传统构建 与 vite构建对比图
 
-<img src="https://cn.vitejs.dev/assets/bundler.37740380.png" style="width:500px;height:280px;float:left" /><img src="https://cn.vitejs.dev/assets/esm.3070012d.png" style="width:480px;height:280px" />
+![](./images/vue301.png)
+
+![](./images/vue302.png)
 
 ```bash
 ## 创建工程
@@ -419,7 +421,7 @@ export default {
 
 ## 8.生命周期
 
-<div style="border:1px solid black;width:380px;float:left;margin-right:20px;"><strong>vue2.x的生命周期</strong><img src="https://cn.vuejs.org/images/lifecycle.png" alt="lifecycle_2" style="zoom:33%;width:1200px" /></div><div style="border:1px solid black;width:510px;height:985px;float:left"><strong>vue3.0的生命周期</strong><img src="https://v3.cn.vuejs.org/images/lifecycle.svg" alt="lifecycle_2" style="zoom:33%;width:2500px" /></div>
+<div style="border:1px solid black;width:380px;float:left;margin-right:20px;"><strong>vue2.x的生命周期</strong><img src="./images/vue303.png" alt="lifecycle_2" style="zoom:33%;width:1200px" /></div><div style="border:1px solid black;width:510px;height:985px;float:left"><strong>vue3.0的生命周期</strong><img src="./images/vue304.svg" alt="lifecycle_2" style="zoom:33%;width:2500px" /></div>
 
 
 
@@ -626,7 +628,7 @@ person = shallowReadonly(person)
 
 ## 5.provide 与 inject
 
-<img src="https://v3.cn.vuejs.org/images/components_provide.png" style="width:300px" />
+![](./images/vue305.png)
 
 - 作用：实现<strong style="color:#DD5145">祖与后代组件间</strong>通信
 
@@ -670,11 +672,12 @@ person = shallowReadonly(person)
 使用传统OptionsAPI中，新增或者修改一个需求，就需要分别在data，methods，computed里修改 。
 
 <div style="width:600px;height:370px;overflow:hidden;float:left">
-    <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f84e4e2c02424d9a99862ade0a2e4114~tplv-k3u1fbpfcp-watermark.image" style="width:600px;float:left" />
+    <img src="./images/vue306.image" style="width:600px;float:left" />
 </div>
 <div style="width:300px;height:370px;overflow:hidden;float:left">
-    <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e5ac7e20d1784887a826f6360768a368~tplv-k3u1fbpfcp-watermark.image" style="zoom:50%;width:560px;left" /> 
+    <img src="./images/vue307.image" style="zoom:50%;width:560px;left" /> 
 </div>
+
 
 
 
@@ -695,11 +698,12 @@ person = shallowReadonly(person)
 我们可以更加优雅的组织我们的代码，函数。让相关功能的代码更加有序的组织在一起。
 
 <div style="width:500px;height:340px;overflow:hidden;float:left">
-    <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bc0be8211fc54b6c941c036791ba4efe~tplv-k3u1fbpfcp-watermark.image"style="height:360px"/>
+    <img src="./images/vue308.image"style="height:360px"/>
 </div>
 <div style="width:430px;height:340px;overflow:hidden;float:left">
-    <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6cc55165c0e34069a75fe36f8712eb80~tplv-k3u1fbpfcp-watermark.image"style="height:360px"/>
+    <img src="./images/vue309.image"style="height:360px"/>
 </div>
+
 
 
 
