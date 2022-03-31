@@ -8,6 +8,10 @@
 
 Oracle123
 
+账号：`83926039@qq.com`
+
+密码：`Oracle0.`
+
 ## 安装
 
 
@@ -35,7 +39,7 @@ Oracle123
 %JAVA_HOME%/jre/bin
 ~~~
 
-#### linux（有问题，别用，后面学到再改）
+#### linux
 
 - 配置环境变量	在**`/etc/profile`**文件中配置
 

@@ -745,6 +745,15 @@ STDOUT_LOGGING
     public int addUser(User user);
     ~~~
 
+    ~~~java
+    //@Options设置sql操作的细节
+    //useGeneratedKeys = true 要获得生成的主键
+    //keyProperty = "id" 获得主键 作为 user对象的id属性值
+    @Options(useGeneratedKeys = true,keyProperty = "id")
+    @Insert("insert into user(,name,password) values (#{id},#{name},#{password})")
+    public int addUser(User user);
+    ~~~
+
 - 在核心文件上注册
 
     ~~~xml

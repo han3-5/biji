@@ -20,6 +20,18 @@
 
 使用 **`whereis nginx`** 找到nginx在哪里，进入目录，进入**`sbin`** 来启动nginx
 
+~~~bash
+tar -zxvf nginx-1.20.2.tar.gz 
+./configure 	# 进入解压目录后执行
+~~~
+
+如果出现 ./configure: error: the HTTP gzip module requires the zlib library.
+You can either disable the module by using --without-http_gzip_module
+option, or install the zlib library into the system, or build the zlib library
+statically from the source with nginx by using --with-zlib=<path> option.
+
+则执行 `yum install -y zlib-devel`
+
 ## 常用命令
 
 ~~~bash

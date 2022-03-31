@@ -468,6 +468,11 @@ pstree -pu
 
 **常用：** ps -aux | grep mysql
 
+~~~bash
+# 后台运行
+nohup java -jar halo-1.5.0.jar &
+~~~
+
 #### 结束进程
 
 kill -9 进程的id
@@ -492,7 +497,7 @@ rpm -qa|grep jdk					# 查看jdk版本
 rpm -e --nodeps jdk查到的jdk版本		 # 卸载
 ~~~
 
-3. 配置环境变量	**`/etc/profile`**	（有问题，不要配置，后面学到再改）
+3. 配置环境变量	**`/etc/profile`**	（rpm安装的不需要配置环境变量）
 
 ~~~bash
 # 先查看jdk的路径 在 /usr/java/jdkxxxx
