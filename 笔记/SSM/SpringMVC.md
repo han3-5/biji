@@ -283,7 +283,7 @@ Restful就是一个资源定位及资源操作的风格。不是标准也不是�
 public class RestFulController {
     //映射访问路径
     @RequestMapping("/commit/{p1}/{p2}")
-    public String index(@PathVariable int p1, @PathVariable int p2, Model model){
+    public String index(@PathVariable("p1") int p1, @PathVariable("p2") int p2, Model model){
         int result = p1+p2;
         //Spring MVC会自动实例化一个Model对象用于向视图中传值
         model.addAttribute("msg", "结果："+result);
@@ -719,6 +719,7 @@ public class RestFulController {
 
 - 过滤器在java web工程中都可以使用
 - 拦截器是SpringMVC框架自己的，只有使用了SpringMVC框架的工程才能使用
+- 过滤器是在执行所有servlet之前的组件，拦截器是在DispatcherServlet之后且在Controller之前执行的
 - 拦截器只会拦截访问的控制器方法，如果访问的是jsp/html/css/js·····等是不会进行拦截的
 
 过滤器和拦截器的区别：拦截器是AOP思想的具体应用

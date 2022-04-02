@@ -355,7 +355,9 @@ tac 倒着显示文件内容
 
 ![](./images/VIM 键盘图.gif)
 
-> :set nu
+> : set nu
+>
+> : set nonu 取消显示行号
 
 显示行号
 
