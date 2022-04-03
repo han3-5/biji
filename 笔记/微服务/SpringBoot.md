@@ -778,6 +778,15 @@ public class MyMvcConfig implements WebMvcConfigurer {
 
 ## 扩展MVC
 
+**springboot** 的MVC
+
+~~~java
+@RequestMapping("/test11")
+public String testt(){
+    return "test";	//  templates/index.html
+}
+~~~
+
 [Spring Boot Reference Documentation](https://docs.spring.io/spring-boot/docs/2.6.6/reference/htmlsingle/#web.servlet.spring-mvc.auto-configuration)
 
 想要添加额外的MVC配置（拦截器、格式化程序、视图控制器和其他功能），那么您可以添加自己的@configuration类，类型为WebMvcConfigurer（实现这个接口）
@@ -811,5 +820,248 @@ public class MyMvcConfig implements WebMvcConfigurer {
 
 [狂神说SpringBoot13：页面国际化 ](https://mp.weixin.qq.com/s?__biz=Mzg2NTAzMTExNg%3D%3D&chksm=ce610719f9168e0fd77185b7194f4cdff964f3f4a6a7584e9ff0afd0ddd99f4e89d9ca2e41bf&idx=1&mid=2247483834&scene=21&sn=e28706bf0c3ded1884452adf6630d43b#wechat_redirect)
 
+## DATA
 
+[Spring Data](https://spring.io/projects/spring-data)
+
+#### 整合JDBC
+
+1. 导入包 **JDBC API、Mysql  driver**
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+2.  application.properties 配置数据源
+
+~~~properties
+spring.datasource.username=root
+spring.datasource.password=123456
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/mybatis?useUnicode=true&characterEncoding=utf8&useSSl=true&serverTimezone=Asia/Shanghai
+~~~
+
+3. 测试一下连接有没有成功
+
+~~~java
+@SpringBootTest
+class SpringBootDataApplicationTests {
+    @Autowired
+    DataSource dataSource;	// 应用配置的数据
+    @Test
+    void contextLoads() throws SQLException {
+        System.out.println(dataSource.getClass());  // 打印出使用的数据源连接池
+    }
+
+}
+~~~
+
+默认给我们配置的数据源为 : class com.zaxxer.hikari.HikariDataSource
+
+HikariDataSource 号称 Java WEB 当前速度最快的数据源，相比于传统的 C3P0 、DBCP、Tomcat jdbc 等连接池更加优秀；
+
+ **JDBCTemplate**
+
+1、有了数据源，就可以拿到数据库连接(java.sql.Connection)，有了连接，就可以使用原生的 JDBC 语句来操作数据库；
+
+2、即使不使用第三方第数据库操作框架，如 MyBatis等，Spring 本身也对原生的JDBC 做了轻量级的封装，即JdbcTemplate。
+
+3、数据库操作的所有 CRUD 方法都在 JdbcTemplate 中。
+
+**JdbcTemplate主要提供以下几类方法：**
+
+- execute方法：可以用于执行任何SQL语句，一般用于执行DDL语句；
+- update方法及batchUpdate方法：update方法用于执行新增、修改、删除等语句；batchUpdate方法用于执行批处理相关语句；
+- query方法及queryForXXX方法：用于执行查询相关语句；
+- call方法：用于执行存储过程、函数相关语句。
+
+**增删改查操作**
+
+~~~java
+@SpringBootTest
+class SpringBootDataApplicationTests {
+    @Autowired
+    DataSource dataSource;
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+    // 查询
+    @Test
+    void test(){
+        String sql = "select * from user";
+        List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
+        System.out.println(maps);
+    }
+    // 新增
+    @Test
+    void test1(){
+        String sql = "insert into user(id,name,password) values(?,?,?)";
+        Object[] objects = new Object[3];
+        objects[0] = 4;
+        objects[1] = "张三";
+        objects[2] = 123456;
+        jdbcTemplate.update(sql, objects);
+    }
+    // 更新
+    @Test
+    void test2(){
+        String sql = "update user set name = ? where id = ?";
+        Object[] objects = new Object[2];
+        objects[0] = "a11";
+        objects[1] = 1;
+        jdbcTemplate.update(sql, objects);
+    }
+    // 删除
+    @Test
+    void test3(){
+        String sql = "delete from user where id = 4";
+        jdbcTemplate.update(sql);
+    }
+}
+
+~~~
+
+#### 整合Mybatis
+
+1. 导包	**Mybatis、Mysql  driver**
+
+~~~xml
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>2.2.2</version>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <scope>runtime</scope>
+</dependency>
+~~~
+
+2. application.properties 配置数据源
+
+~~~properties
+spring.datasource.username=root
+spring.datasource.password=123456
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/mybatis?useUnicode=true&characterEncoding=utf8&useSSl=true&serverTimezone=Asia/Shanghai
+~~~
+
+3. 测试一下连接有没有成功
+
+~~~bash
+# 和整合JDBC代码一致
+~~~
+
+**增删改查操作**
+
+1. 编写实体类
+
+~~~java
+public class User {
+    private Integer id;
+    private String name;
+    private String password;
+    // 省略set、get...
+}
+~~~
+
+2. 编写Mapper
+
+~~~java
+@SpringBootApplication
+// 表示这是一个 mybatis 的 mapper 类(第二种方法)
+// 在主启动类上扫描
+@MapperScan("com.example.springbootdata.mapper")
+public class SpringBootDataApplication {.....}
+~~~
+
+~~~java
+@Mapper // 加上这个注解表示这是一个 mybatis 的 mapper 类(第一种方法)
+@Repository
+public interface UserMapper {
+    List<User> queryUserList();
+    User queryUserById(int id);
+    int addUser(User user);
+    int updateUser(User user);
+    int deleteUserById(int id);
+}
+~~~
+
+3. 编写xxx.xml 配置文件
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springbootdata.mapper.UserMapper">
+
+    <select id="queryUserList" resultType="User">
+        select * from user
+    </select>
+</mapper>
+~~~
+
+4. application.properties 配置文件
+
+~~~properties
+# 类型别名
+mybatis.type-aliases-package=com.example.springbootdata.pojo
+# 配置xml文件的路径，不然springboot找不到xml文件
+mybatis.mapper-locations=classpath:mapper/*.xml
+~~~
+
+5. 测试
+
+~~~java
+@SpringBootTest
+public class mybatisTest {
+    @Autowired
+    DataSource dataSource;
+    @Autowired
+    UserMapper userMapper;
+    @Test
+    void test(){
+        List<User> users = userMapper.queryUserList();
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+}
+~~~
+
+**也可以使用注解方式**
+
+2. 编写Mapper
+
+~~~java
+@Mapper // 加上这个注解表示这是一个 mybatis 的 mapper 类(第一种方法)
+@Repository
+public interface UserMapper {
+    @Select("select * from user")
+    List<User> queryUserList();
+}
+~~~
+
+3. 测试
+
+~~~java
+// 测试代码同上
+~~~
+
+**查看执行的sql语句**
+
+> 如果需要让mybatis底层输出的日志 显示在控制台，在application.properties中配置：规定哪些类中的什么级别的日志信息输出在springboot控制台：
+
+~~~properties
+logging.level.com.zyh.mapper=trace
+~~~
 

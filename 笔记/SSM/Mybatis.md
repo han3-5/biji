@@ -391,6 +391,10 @@ public static SqlSession getSqlSession(){
     select * from user where name like "%"#{value}"%"
     ~~~
 
+#### 大于小于问题
+
+大小写需要转义字符。需要百度搜
+
 ## 配置解析
 
 #### Mybatis详细执行过程
@@ -635,7 +639,7 @@ STDOUT_LOGGING
 </settings>
 ~~~
 
-#### LOG4J（有漏洞，不再使用）
+#### LOG4J
 
 - Log4j 是 apache的一个开源项目，通过使用Log4j，可以控制日志信息输出到控制台、文件、GUI组件
 - 可以控制每一条日志的输出格式
@@ -1012,11 +1016,11 @@ STDOUT_LOGGING
 
 ~~~xml
 <!--select * from blog where id in (1,2,3)-->
-<!--collection:集合，item：代表每一项，open:拼接开始的字符，close:拼接结束的字符，separator:分隔符-->
+<!--collection="array"属性 要遍历的是数组，item：代表每一项，open:拼接开始的字符，close:拼接结束的字符，separator:分隔符-->
 <select id="queryBlogForeach" parameterType="map" resultType="pojo.Blog">
     select * from blog
     <where>
-        <foreach collection="ids" item="id" open="and id in (" close=")" separator=",">
+        <foreach collection="array" item="id" open="and id in (" close=")" separator=",">
             #{id}
         </foreach>
     </where>

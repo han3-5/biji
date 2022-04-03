@@ -426,7 +426,7 @@ String str = df.format(new Date());
 System.out.println(str);
 ~~~
 
-![](./images/01.png)
+![](./images/java01.png)
 
 #### Calender日历类
 
