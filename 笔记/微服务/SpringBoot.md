@@ -590,6 +590,8 @@ debug=true
 
 **Unconditional classes:**	没有条件的类
 
+
+
 ## Web(springboot)开发
 
 templates 目录下不能直接访问，只能通过 Controller访问
@@ -777,6 +779,8 @@ public class MyMvcConfig implements WebMvcConfigurer {
 ~~~
 
 ## 扩展MVC
+
+**需要依赖支持**	**需要导入jar包**
 
 **springboot** 的MVC
 
@@ -1063,5 +1067,32 @@ public interface UserMapper {
 
 ~~~properties
 logging.level.com.zyh.mapper=trace
+~~~
+
+## springboot 默认日志
+
+~~~java
+//   SLF4J日志记录器 
+// @Slf4j 或者在类上使用注解
+private static Logger log = LoggerFactory.getLogger(SpringBootStudyApplicationTests.class);
+~~~
+
+**修改日志的默认输出级别**
+
+~~~properties
+# 这句代码的意思是将com.zyh.mapper包下的所有类的日志级别都设置为trace级别
+logging.level.com.zyh.mapper=trace
+
+
+#指定某个包下的日志级别
+logging.level.com.staticzz=trace
+#指定log文件名
+#logging.file=SpringBoot.log
+#指定log输出路径,如果不指定,默认输出到控制台
+logging.path=C:/Users/socra
+#指定控制台输出格式
+#logging.pattern.console=
+#指定文件输出格式
+logging.pattern.file=%d{-yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-51level %logger{50} - %msg%n
 ~~~
 

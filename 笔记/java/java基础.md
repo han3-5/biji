@@ -258,14 +258,24 @@ new 父类名或者接口名(){
 
 ~~~java
 interface 接口名{
-    void b();
+    int test(int a, int b);
 }
-接口名 a = null;
-a = （）->{};
-
+接口名 a = (int a,int b) -> 5+5;
 ~~~
 
-
+~~~java
+// 之前的写法
+interface 接口名{
+    int test(int a, int b);
+}
+接口名 a = new 接口名 {
+    @Override
+    public int test(int a, int b) {
+        return a+b;
+    }
+};
+int a = a1.test(5,5);
+~~~
 
 #### 函数式接口
 
@@ -481,17 +491,17 @@ enum 枚举名{
 
 > UML	统一建模语言,用于描述类的属性，方法，以及类于类之间的关系
 
-![2318](./images/2318.png)
+![2318](./images/java2318.png)
 
-![2319](./images/2319.png)
+![2319](./images/java2319.png)
 
 > 带箭头的实线，表示都继承
 
-![2320](./images/2320.png)
+![2320](./images/java2320.png)
 
 > 带箭头的虚线，表示实现
 
-![2321](./images/2321.png)
+![2321](./images/java2321.png)
 
 
 

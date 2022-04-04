@@ -103,7 +103,7 @@ display:inline-block	转为行内块元素
 
 input 的 一些属性 name一样表示一个组
 
-![](./images/01.png)
+![](./images/html01.png)
 
 > radio 			单选框						checkbox	  多选框
 

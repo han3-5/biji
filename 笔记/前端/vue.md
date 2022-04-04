@@ -1261,7 +1261,7 @@ vue create xxxx # xxxx是创建的文件名
 
 1. 首先，会提示选择preset(预设).除最后两个**，**其他选项都是你此前保存的预设配置
 
-![](./images/02.png)
+![](./images/vuecli02.png)
 
 default（babel，eslint）：默认设置非常适合快速创建一个新项目的原型，没有带任何辅助功能的 npm包
 
@@ -1269,7 +1269,7 @@ Manually select features：自定义配置是我们所需要的面向生产的�
 
 2. 如果选择了 Manually select features
 
-![](./images/03.png)
+![](./images/vuecli03.png)
 
 ~~~bash
 ( ) Babel //转码器，可以将ES6代码转为ES5代码，从而在现有环境执行。 
@@ -1285,25 +1285,25 @@ Manually select features：自定义配置是我们所需要的面向生产的�
 
 3. 是否使用 history router：
 
-![](./images/04.png)
+![](./images/vuecli04.png)
 
 4.  css 预处理器
 
-![](./images/05.png)
+![](./images/vuecli05.png)
 
 5. ESlint	提供一个插件化的javascript代码检测工具，ESLint + Prettier //使用较多
 
-![](images/06.png)
+![](images/vuecli06.png)
 
 6. 何时检测
 
-![](images/07.png)
+![](images/vuecli07.png)
 
 7. 如果存放位置
 
-![](./images/08.png)
+![](./images/vuecli08.png)
 
 8. 是否保存本次配置
 
-![](./images/09.png)
+![](./images/vuecli09.png)
 
