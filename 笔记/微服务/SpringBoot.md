@@ -1016,6 +1016,8 @@ public interface UserMapper {
 
 4. application.properties 配置文件
 
+> mybatis-plus 不用配置。或者将文件放在mapper接口同一个文件内（但会遇到maven导入静态资源的问题，需要在pom.xml中配置一下）
+
 ~~~properties
 # 类型别名
 mybatis.type-aliases-package=com.example.springbootdata.pojo

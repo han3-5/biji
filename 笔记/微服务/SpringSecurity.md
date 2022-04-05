@@ -142,6 +142,42 @@ http.rememberMe();  // 记住我功能 cookie实现，默认保存两周
 - SecurityManager：管理所有用户。本质上是一个应用程序单例，默认的SecurityManager实现是POJO，可以使用任何与POJO兼容的配置机制进行配置，基本上可以使用任何能够实例化类和调用JavaBeans兼容方法的东西。
 - Realm：连接数据，是一个特定于安全性的DAO：它封装了数据源的连接细节，并根据需要将相关数据提供给Shiro
 
+[10 Minute Tutorial on Apache Shiro | Apache Shiro](https://shiro.apache.org/10-minute-tutorial.html) 
+
+~~~java
+Subject currentUser = SecurityUtils.getSubject();	// 获取当前的用户对象Subject
+
+Session session = currentUser.getSession();			// 通过当前用户拿到session
+session.setAttribute( "someKey", "aValue" );		// 存值
+String value = (String) session.getAttribute("someKey");// 取值
+
+// 判断当前的用户是否被认证
+if ( !currentUser.isAuthenticated() ) {
+    UsernamePasswordToken token = new UsernamePasswordToken("lonestarr", "vespa");
+    token.setRememberMe(true);			// 设置记住我
+    try {
+        currentUser.login( token );		// 执行登录操作
+    } catch ( UnknownAccountException uae ) {
+        // 未知的账户
+    } catch ( IncorrectCredentialsException ice ) {
+        // 密码不对
+    } catch ( LockedAccountException lae ) {
+        // 用户名被锁定了
+    }
+    ... more types exceptions to check if you want ...
+        } catch ( AuthenticationException ae ) {
+    //unexpected condition - error? 意外错误
+}
+}
+
+currentUser.getPrincipal()					// 用户的主要信息
+currentUser.hasRole( "schwartz" ) 			// 用户的角色
+currentUser.isPermitted( "lightsaber:wield" )// 拥有的权限
+currentUser.isPermitted( "winnebago:drive:eagle5" )// 拥有的权限
+    
+currentUser.logout(); 	// 注销
+~~~
+
 #### 整合到springboot
 
 导入依赖
@@ -190,7 +226,7 @@ public class ShiroConfig {
         shiroFilterFactoryBean.setSecurityManager(DefaultWebSecurityManager);
         return shiroFilterFactoryBean;
     }
-    // DafaultWebSecurityManager
+    // DefaultWebSecurityManager
     @Bean
     public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm){
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
@@ -215,12 +251,31 @@ public class ShiroConfig {
 public class MyController {
     @RequestMapping("/")
     public String toIndex(){ return "index";}
-    @RequestMapping("/add")
+    @RequestMapping("/user/add")
     public String add(){ return "user/add";}
-    @RequestMapping("/update")
+    @RequestMapping("/user/update")
     public String update(){ return "user/update";}
     @RequestMapping("/toLogin")
     public String login(){ return "login";}
+    
+    @RequestMapping("/login1")
+    public String login(String username,String password,Model model){
+        // 获取当前的用户
+        Subject subject = SecurityUtils.getSubject();
+        // 封装用户的登录信息
+        UsernamePasswordToken token = new UsernamePasswordToken(username, password);
+
+        try {
+            subject.login(token);   // 执行登录的方法，如果没有异常，说明 ok
+            return "index";
+        } catch (UnknownAccountException e) {
+            model.addAttribute("msg","用户名错误");
+            return "login";
+        }catch (IncorrectCredentialsException e){
+            model.addAttribute("msg","密码错误");
+            return "login";
+        }
+    }
 }
 ~~~
 
@@ -238,14 +293,179 @@ public ShiroFilterFactoryBean getShiroFilterFactoryBean(DefaultWebSecurityManage
             user：必须拥有记住我功能才能用
             perms：拥有对某个资源的权限才能访问
             role：拥有某个角色权限才能访问
+            logout: 退出过滤器，配置一个url就可以使用
          */
     // 添加shiro的内置过滤器
     Map<String, String> filerMap = new HashMap<>();
-    filerMap.put("/add","authc");
+    // 拦截
+    filerMap.put("/user/*","authc");
     shiroFilterFactoryBean.setFilterChainDefinitionMap(filerMap);
     // 设置登录的请求
     shiroFilterFactoryBean.setLoginUrl("/toLogin");
     return shiroFilterFactoryBean;
+}
+~~~
+
+#### 用户认证
+
+- Controller 层接收这些参数，并进行判断
+
+> 应该在service层，这里比较简单，写在Controller
+
+~~~java
+@RequestMapping("/login1")
+public String login(String username,String password,Model model){
+    // 获取当前的用户
+    Subject subject = SecurityUtils.getSubject();
+    // 封装用户的登录信息
+    UsernamePasswordToken token = new UsernamePasswordToken(username, password);
+
+    try {
+        subject.login(token);   // 执行登录的方法，如果没有异常，说明 ok
+        return "index";
+    } catch (UnknownAccountException e) {
+        model.addAttribute("msg","用户名错误");
+        return "login";
+    }catch (IncorrectCredentialsException e){
+        model.addAttribute("msg","密码错误");
+        return "login";
+    }
+}
+~~~
+
+- Shiro 认证
+
+~~~java
+// 认证
+@Override
+protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
+    System.out.println("===AuthenticationInfo===执行了");
+    // 用户名、密码
+    String username = "root";
+    String password = "123123";
+    UsernamePasswordToken userToken = (UsernamePasswordToken) authenticationToken;
+    if (!userToken.getUsername().equals(username)){
+        return null;    // 会自动抛出异常 UnknownAccountException
+    }
+    // 密码认证，shiro做
+    return new SimpleAuthenticationInfo("",password,"");
+}
+~~~
+
+#### 整合Mybatis
+
+Mapper
+
+~~~java
+@Mapper
+public interface UserMapper {
+    User queryUserByName(String name);
+}
+~~~
+
+~~~java
+@Autowired
+UserMapper UserMapper;
+// 认证
+@Override
+protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
+    System.out.println("===AuthenticationInfo===执行了");
+    UsernamePasswordToken userToken = (UsernamePasswordToken) authenticationToken;
+    // 连接真实的数据库
+    User user = userService.queryUserByName(userToken.getUsername());
+    if (user == null){	// 没有这个人
+        return null;	// 会自动抛出异常 UnknownAccountException
+    }
+    // 密码认证，shiro做
+    // SimpleAuthenticationInfo(将当前用户放到subject,获取当前用户的密码,用户名字)
+    return new SimpleAuthenticationInfo(user,user.getPassword(),"");
+}
+~~~
+
+#### 用户授权
+
+MyController
+
+~~~java
+@RequestMapping("/noauth")
+@ResponseBody
+public String unauth(){
+    return "未经授权";
+}
+~~~
+
+UserRealm
+
+~~~java
+// 授权
+@Override
+protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
+    System.out.println("===授权===执行了");
+    SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
+    //        simpleAuthorizationInfo.addStringPermission("user:add");
+    // 拿到当前登录的这个对象
+    Subject subject = SecurityUtils.getSubject();
+    User currentUser = (User) subject.getPrincipal(); // 拿到User对象
+    // 设置当前用户的权限
+    simpleAuthorizationInfo.addStringPermission(currentUser.getPerms());
+    return simpleAuthorizationInfo;
+}
+~~~
+
+shiroConfig
+
+~~~java
+// 添加shiro的内置过滤器
+// 拦截
+Map<String, String> filerMap = new HashMap<>();
+// 授权   没有授权会跳到未授权的页面
+filerMap.put("/user/add","perms[user:add]");
+filerMap.put("/user/update","perms[user:update]");
+
+filerMap.put("/user/*","authc");    // 未经授权就访问 authc
+//filerMap.put("/logout1","logout");   // 注销功能。要放在最后
+shiroFilterFactoryBean.setFilterChainDefinitionMap(filerMap);
+// 设置登录的请求
+shiroFilterFactoryBean.setLoginUrl("/toLogin");
+// 设置未授权的页面
+shiroFilterFactoryBean.setUnauthorizedUrl("/noauth");
+
+return shiroFilterFactoryBean;
+~~~
+
+#### 用户注销
+
+html 中
+
+~~~html
+<a href="/logout1">logout</a>
+~~~
+
+- 方法一 在 ShiroConfig中配置 
+
+~~~java
+Map<String, String> filerMap = new HashMap<>();
+// 授权 
+filerMap.put("/user/add","perms[user:add]");
+filerMap.put("/user/update","perms[user:update]");
+filerMap.put("/user/*","authc");
+
+//filerMap.put("/logout1","logout");   // 注销功能。要放在最后
+shiroFilterFactoryBean.setFilterChainDefinitionMap(filerMap);
+~~~
+
+- 方法二 在Controller中配置
+
+~~~java
+@RequestMapping("/logout1")
+@ResponseBody
+public String logout1(){
+    Subject subject = SecurityUtils.getSubject();
+    if (subject.getPrincipal() != null) {
+        subject.logout();
+        return "退出成功";
+    }
+    return "没有可以退出的用户";
 }
 ~~~
 

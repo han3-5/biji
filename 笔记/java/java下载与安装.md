@@ -4,9 +4,9 @@
 
 下载的时候可能会要求登录
 
-1985479344@qq.com
+账号：`1985479344@qq.com`
 
-Oracle123
+密码：`Oracle123`
 
 账号：`83926039@qq.com`
 
@@ -52,8 +52,6 @@ PATH=$JAVA_HOME/bin;$JAVA_HOME/jre/bin
 export PATH CLASSPATH JAVA_HOME
 ~~~
 
-- 如果配置文件没有生效
-
 ~~~bash
-source /etc/profile
+source /etc/profile			# 使配置文件没生效
 ~~~

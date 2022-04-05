@@ -109,7 +109,7 @@ decimal(9,2)	 代表 整数 9 位，小数 2 位      **java.math.BigDecimal**
 
 - date					YYYY-MM-DD 			日期时间
 - time                     HH:mm:ss                 时间格式
-- **datetime             YYYY-MM-DD HH:mm:ss**   常用   java的Date
+- **datetime             YYYY-MM-DD HH:mm:ss**   常用   java的Date（jdk1.8后使用可以使用LocalDateTime）
 - timestamp           时间戳              1970.1.1到现在的毫秒数  常用
 - year                       年份表示
 
