@@ -6,6 +6,46 @@ javac xxx.java					# 之前
 javac -encoding UTF-8 xxx.java  # 改为
 ~~~
 
+## 数据类型
+
+> Java中每一种数据都定义了明确的数据类型，在内存中分配了不同大小的内存空间
+
+- 基本数据类型
+    - 数值型
+        - 整型
+            - byte	1
+            - short   2
+            - int        4
+            - long     8
+        - 浮点（小数）
+            - float      4
+            - double  8
+    - 字符型
+        - char    2
+    - 布尔型
+        - boolean    1
+- 引用数据类型
+    - 类
+    - 接口
+    - 数组
+
+注意点：
+
+1. Java的整型常量默认为int型，声明long型后面需要加 ` "L"`或者 `"l"`
+2. 浮点数在机器中存放形式是 符号位+指数位+尾数位 。尾数位部分有可能丢失，所以小数都是近似值
+3. Java的浮点型常量默认为double型，声明float型后面需要加 ` F`或者 `"f"`
+
+#### 包装类
+
+>1. parse…()返回值都为基本类型
+>2. valueOf返回值为对象类型，且valueOf会调用parse…()
+
+~~~java
+String a = "123";
+int b = Integer.parseInt(a);		// 转换为基本类型
+Integer b = Integer.valuesOf(a);	// 转换成对象类型
+~~~
+
 ## 可变参数
 
 > JDK1.5之后有的。支持传递同类型的可变参数給一个方法
@@ -44,21 +84,6 @@ void test([int x,]int... i){}
 > protected  同类同包子类	   
 >
 > public 所有
-
-## 数据类型
-
-
-
-#### valueOf()和parse…()的区别
-
->1. parse…()返回值都为基本类型
->2. valueOf返回值为对象类型，且valueOf会调用parse…()
-
-~~~java
-String a = "123";
-int b = Integer.parseInt(a);		// 转换为基本类型
-Integer b = Integer.valuesOf(a);	// 转换成对象类型
-~~~
 
 ## 封装
 
@@ -163,7 +188,7 @@ interface 接口名 [extends 父类1,父类2...]{
     方法定义;
 }
 //实现接口
-//实现类可以实现多个父接口
+//实现类可以实现多个接口
 class 类名 implements 接口名1[,接口名2...]{
     
 }
@@ -173,7 +198,7 @@ class 类名 implements 接口名1[,接口名2...]{
 
 > 1. 访问控制符：只能是public或default
 > 2. 接口名：和类名相当命名机制
-> 3. 常亮：接口中的属性只能是常亮。总是用public static final 修饰
+> 3. 常量：接口中的属性只能是常量。总是用public static final 修饰
 > 4. 方法：接口中的方法只能是 public static final
 
 #### 要点

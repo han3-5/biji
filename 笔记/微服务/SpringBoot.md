@@ -1023,6 +1023,8 @@ public interface UserMapper {
 mybatis.type-aliases-package=com.example.springbootdata.pojo
 # 配置xml文件的路径，不然springboot找不到xml文件
 mybatis.mapper-locations=classpath:mapper/*.xml
+# 驼峰转换
+mybatis.configuration.map-underscore-to-camel-case=true
 ~~~
 
 5. 测试

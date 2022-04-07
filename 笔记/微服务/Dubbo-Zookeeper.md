@@ -76,3 +76,177 @@ mvn clean package -Dmaven.test.skip=true
 
 账户密码是root-root
 
+## SpringBoot+Dubbo+zookeeper
+
+1. 创建一个空项目
+2. 创建一个模块，实现服务提供者，选择web依赖
+3. 写一个服务，比如卖票的服务
+
+编写接口
+
+~~~java
+public interface TicketService {
+    String getTicket();
+}
+~~~
+
+编写实现类
+
+~~~java
+public class TickServiceImpl implements TicketService{
+    @Override
+    public String getTicket() {
+        return "你好呀~";
+    }
+}
+~~~
+
+4. 创建一个模块，实现服务消费者，选择web依赖
+5. 写一个服务，比如用户的服务
+
+编写接口
+
+~~~java
+public interface UserService {
+    // 想拿到provider的票
+}
+~~~
+
+6. 导入依赖，两个都需要
+
+~~~xml
+<!-- Dubbo Spring Boot Starter -->
+<dependency>
+    <groupId>org.apache.dubbo</groupId>
+    <artifactId>dubbo-spring-boot-starter</artifactId>
+    <version>2.7.3</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/com.github.sgroschupf/zkclient -->
+<dependency>
+    <groupId>com.github.sgroschupf</groupId>
+    <artifactId>zkclient</artifactId>
+    <version>0.1</version>
+</dependency>
+~~~
+
+~~~xml
+<!-- 引入zookeeper及其依赖包，解决日志冲突，还需要剔除日志依赖；-->
+<dependency>
+    <groupId>org.apache.curator</groupId>
+    <artifactId>curator-framework</artifactId>
+    <version>2.12.0</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.curator</groupId>
+    <artifactId>curator-recipes</artifactId>
+    <version>2.12.0</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.zookeeper</groupId>
+    <artifactId>zookeeper</artifactId>
+    <version>3.4.14</version>
+    <!--排除这个slf4j-log4j12-->
+    <exclusions>
+        <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+</dependency>
+~~~
+
+#### 服务提供者
+
+1. 需要在springboot的配置文件中配置dubbo相关的属性
+
+~~~properties
+server.port=8081
+# 服务应用名字
+dubbo.application.name=provider-server
+# 注册中心地址
+dubbo.registry.address=zookeeper://127.0.0.1:2181
+# 哪些服务要被注册(扫描到包)
+dubbo.scan.base-packages=com.example.provider
+~~~
+
+2. service的实现类中配置服务注解
+
+~~~java
+package com.example.provider.service;
+import org.apache.dubbo.config.annotation.Service;
+import org.springframework.stereotype.Component;
+@Component            // 注册到Spring，如果换成@Service注解，要注意导的包问题
+@Service              // 这个@Service的注解是dubbo下的
+public class TickServiceImpl implements TicketService{
+    @Override
+    public String getTicket() {
+        return "你好呀~";
+    }
+}
+~~~
+
+3. 启动服务
+
+#### 服务消费者
+
+1. 需要在springboot的配置文件中配置dubbo相关的属性
+
+~~~properties
+# 消费者去拿服务需要暴露自己的名字
+dubbo.application.name=consumer-test
+# 注册中心的地址
+dubbo.registry.address=zookeeper://127.0.0.1:2181
+~~~
+
+2. 正常步骤是需要将服务提供者的接口打包，然后用pom文件导入，我们这里使用简单的方式，直接将服务的接口拿过来，路径必须保证正确，即和服务提供者相同；
+
+~~~bash
+# 这是服务提供者的接口地址，要确保一样，不然会扫描不到
+com.example.provider.service.TicketService
+~~~
+
+3. 编写消费者的服务类
+
+~~~java
+package com.example.consumer.service;
+import com.example.provider.service.TicketService;
+import org.apache.dubbo.config.annotation.Reference;
+import org.springframework.stereotype.Component;
+@Component    // 注册到Spring容器中
+public class UserService {
+    // 想拿到provider的票,要去注册中心拿到服务
+    
+    @Reference  // 远程引用指定的服务，他会按照全类名进行匹配，看谁给注册中心注册了这个全类名
+    TicketService ticketService;
+    public void bugTicket(){
+        String ticket = ticketService.getTicket();
+        System.out.println("在注册中心买到"+ticket);
+    }
+}
+~~~
+
+4. 测试类
+
+~~~java
+@SpringBootTest
+class ConsumerApplicationTests {
+    @Autowired
+    UserService userService;
+    @Test
+    void contextLoads() {
+        userService.bugTicket();
+    }
+}
+~~~
+
+#### 测试
+
+1. 开启zookeeper
+2. 打开dubbo-admin监控【可以不做】
+3. 开启服务者
+4. 运行消费者测试
+
