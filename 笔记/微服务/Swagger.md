@@ -113,7 +113,7 @@ public class SwaggerConfig {
 
 #### 配置扫描接口
 
-com.example.springbootswagger.swagger.controller 如下
+com.example.springbootswagger.swagger.**controller** 如下
 
 ~~~java
 @Controller

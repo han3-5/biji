@@ -920,6 +920,13 @@ System.out.println(stu);
 
 - 使用注解实现类似自定义
 
+**常用的注解：**
+
+- @Before		 在指定方法运行之前执行
+- @After            在指定方法运行之前执行
+- @Around
+- @AfterThrowing
+
 ## 整合Mybatis
 
 [mybatis-spring –](http://mybatis.org/spring/zh/index.html)
