@@ -347,6 +347,13 @@ docker attach 容器id
 docker stats [容器id]
 ~~~
 
+**docker network**    查看网卡
+
+~~~shell
+docker network ls   		# 查看所有网卡
+docker network rm name 		# 移除网卡
+~~~
+
 **docker cp**	  从容器内拷贝文件到主机上
 
 ~~~shell
@@ -1001,4 +1008,294 @@ docker tag diytomcat dockerhub的用户名/diytomcat:1.0
 2. 在实例列表创建个人实例
 3. 创建命名空间
 4. 剩下的看官方地址吧
+
+## 网络
+
+输入 `ip add` 查看网卡情况，可以查看到三个
+
+> docke 是如何处理容器网络访问的？
+
+~~~shell
+docker run -d -p 3344:8080 --name tomcat01 tomcat
+# 如果ip addr 报错，就进入容器内输入  apt update && apt install -y iproute2
+# 查看容器内部网络地址 ip addr 可以发现容器得到一个 eth0@if95 的ip地址
+[root@zyh ~]# docker exec -it tomcat01 ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+94: eth0@if95: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+       
+# 用本机尝试ping容器内部
+[root@zyh ~]# ping 172.17.0.2
+PING 172.17.0.2 (172.17.0.2) 56(84) bytes of data.
+64 bytes from 172.17.0.2: icmp_seq=1 ttl=64 time=0.063 ms
+64 bytes from 172.17.0.2: icmp_seq=2 ttl=64 time=0.104 ms
+~~~
+
+**原理：**
+
+1. 我们每启动一个docker容器，docker就会给docker容器分配一个ip，我们只要安装了docker，就会有一个网卡docker0
+
+桥接模式，使用的技术是 evth-pair 技术
+
+2. 在启动一个容器测试，发现又多了一对网卡
+
+~~~shell
+# 发现这个容器带的网卡是一对对的
+# wvth-pair 就是一对的虚拟设备接口，它们是成对出现的，一端连着协议，一端彼此相连
+# 因为这个特性，evth-pair 充当了一个桥梁，连接各种虚拟网络设备
+~~~
+
+3. 测试两个容器是否可以ping通
+
+~~~shell
+# 如果 ping 报错，就进入容器内输入  apt update && apt install iputils-ping
+[root@zyh ~]# docker exec -it tomcat01 ping 172.17.0.3
+PING 172.17.0.3 (172.17.0.3) 56(84) bytes of data.
+64 bytes from 172.17.0.3: icmp_seq=1 ttl=64 time=0.116 ms
+64 bytes from 172.17.0.3: icmp_seq=2 ttl=64 time=0.109 ms
+~~~
+
+**结论：**tomcat01 和 tomcat02 是共用的一个路由器 docker0
+
+所有的容器不指定网络的情况下，都是docker0 路由的，docker会给容器分配一个默认的可用ip
+
+Docker使用的是linux的桥接，宿主机中是一个Docker容器的网桥 docker0
+
+![](images/docker04.png)
+
+Docker 中的所有的网络接口都是虚拟的，虚拟的转发效率高！
+
+#### --link
+
+> 不通过ip，通过服务名进行ping通
+
+~~~shell
+[root@zyh ~]# docker exec -it tomcat01 ping tomcat02
+ping: tomcat02: Name or service not known
+
+# 如何解决？ 使用--link
+[root@zyh ~]# docker run -d -P --name tomcat03 --link tomcat02 tomcat
+[root@zyh ~]# docker exec -it tomcat03 ping tomcat02
+PING tomcat02 (172.17.0.3) 56(84) bytes of data.
+64 bytes from tomcat02 (172.17.0.3): icmp_seq=1 ttl=64 time=0.107 ms
+64 bytes from tomcat02 (172.17.0.3): icmp_seq=2 ttl=64 time=0.103 ms
+# 能不能反向ping通？
+[root@zyh ~]# docker exec -it tomcat02 ping tomcat03
+ping: tomcat03: Name or service not known
+~~~
+
+~~~shell
+# 不能用ping的话 进入容器 apt update && apt install iputils-ping
+~~~
+
+进入tomcat03 的 `/ect/hosts` 查看本质
+
+~~~shell
+[root@zyh ~]# docker exec -it tomcat03 cat /etc/hosts
+127.0.0.1	localhost
+::1	localhost ip6-localhost ip6-loopback
+fe00::0	ip6-localnet
+ff00::0	ip6-mcastprefix
+ff02::1	ip6-allnodes
+ff02::2	ip6-allrouters
+172.17.0.3	tomcat02 e4c95971b62d
+172.17.0.4	f56a50006bc8
+~~~
+
+本质探究： --link 就是在hosts配置中添加了一个 172.17.0.3	tomcat02 e4c95971b62d
+
+现在使用Docker 已经不建议使用 --link 了！太笨了
+
+使用 自定义网络而不使用dokcer0		
+
+docker0的问题：不支持容器名链接网络
+
+#### 自定义网络
+
+~~~shell
+# 查看所有docker 网络
+[root@zyh ~]# docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+3413bf3634d6   bridge    bridge    local
+366d553b59ff   host      host      local
+695c28a1f72a   none      null      local
+~~~
+
+**网络模式**
+
+bright：桥接（默认，自定义网络也使用bridge模式）
+
+none：不配置网络
+
+host：和宿主机共享网络
+
+container：容器网络联通（用得少，局限大）
+
+~~~shell
+# 直接启动的命令，--net bridge 是默认的，也就是docker0
+docker run -d -P --name tomcat01 tomcat
+docker run -d -P --name tomcat01 --net bridge tomcat
+
+# docker0特点：默认、域名不能访问	--link 可以打通连接，但笨重
+~~~
+
+**自定义网络**
+
+~~~shell
+# --driver bridge
+# --subnet 192.168.0.0/16
+# --gateway 192.168.0.1
+[root@zyh ~]# docker network create --driver bridge --subnet 192.168.0.0/16 --gateway 192.168.0.1 mynet
+0b148ed9680b17df4bd36c771d23efad38cd9c60ab8f55bc2a510bd2c42e97fe
+[root@zyh ~]# docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+3413bf3634d6   bridge    bridge    local
+366d553b59ff   host      host      local
+0b148ed9680b   mynet     bridge    local
+695c28a1f72a   none      null      local
+~~~
+
+**查看自己的网络**
+
+~~~shell
+[root@zyh ~]# docker network inspect mynet
+[
+    {
+        "Name": "mynet",
+        "Id": "0b148ed9680b17df4bd36c771d23efad38cd9c60ab8f55bc2a510bd2c42e97fe",
+        "Created": "2022-04-12T14:46:56.292682251+08:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "192.168.0.0/16",
+                    "Gateway": "192.168.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {},
+        "Labels": {}
+    }
+]
+~~~
+
+**测试**
+
+~~~shell
+# 创建两个容器
+[root@zyh ~]# docker run -d -P --name tomcat01 --net mynet tomcat
+ed455b80fa16d3859f102947ac8cf5b46a063f85951fa039825b190e8710b18d
+[root@zyh ~]# docker run -d -P --name tomcat02 --net mynet tomcat
+f171a0bbb90f34d9308bd22edff0556219de5a882c13d13e8ef40b53d783e4f8
+# 可以不能用ping命令，进入容器 apt update && apt install iputils-ping
+~~~
+
+~~~shell
+[root@zyh ~]# docker exec -it tomcat01 ping 192.168.0.3
+PING 192.168.0.3 (192.168.0.3) 56(84) bytes of data.
+64 bytes from 192.168.0.3: icmp_seq=1 ttl=64 time=0.114 ms
+64 bytes from 192.168.0.3: icmp_seq=2 ttl=64 time=0.094 ms
+[root@zyh ~]# docker exec -it tomcat01 ping tomcat02
+PING tomcat02 (192.168.0.3) 56(84) bytes of data.
+64 bytes from tomcat02.mynet (192.168.0.3): icmp_seq=1 ttl=64 time=0.084 ms
+64 bytes from tomcat02.mynet (192.168.0.3): icmp_seq=2 ttl=64 time=0.105 ms
+~~~
+
+自定义的网络docker 都已经帮我们维护好了对应的关系，推荐平时这样使用网络！
+
+好处： 不同的集群使用不同的网络，保证集群是安全的和健康的
+
+#### 网络连通
+
+~~~shell
+# 在新建两个容器 使用自定义的 (网段在172.17.0.0/16)
+[root@zyh ~]# docker run -d -P --name tomcat001 tomcat
+07d2778bc29d52a7e22eb299a7950c10dcf094196046d13900837ed909367e1b
+[root@zyh ~]# docker run -d -P --name tomcat002 tomcat
+9fc21355e3bb44fc0cbd0d77a52093127f3c8b5d163cd199a039d45fa52ddad0
+~~~
+
+~~~shell
+[root@zyh ~]# docker exec -it tomcat01 ping 172.17.0.2
+PING 172.17.0.2 (172.17.0.2) 56(84) bytes of data.
+^C
+--- 172.17.0.2 ping statistics ---
+95 packets transmitted, 0 received, 100% packet loss, time 94001ms
+~~~
+
+**docker network connect** 	 网络连通
+
+~~~shell
+docker network connect mynet tomcat001
+# 使用docker network inspect mynet查看
+# 连通之后就是将tomcat001 放到了mynet网络下
+# 一个容器两个ip！
+~~~
+
+![](./images/docker05.png)
+
+~~~shell
+[root@zyh ~]# docker exec -it tomcat01 ping tomcat001
+PING tomcat001 (192.168.0.4) 56(84) bytes of data.
+64 bytes from tomcat001.mynet (192.168.0.4): icmp_seq=1 ttl=64 time=0.124 ms
+64 bytes from tomcat001.mynet (192.168.0.4): icmp_seq=2 ttl=64 time=0.105 ms
+~~~
+
+**结论：** 如果要跨网络操作别人，就需要使用docker network connect 连通
+
+## SpringBoot打包成Docker镜像
+
+1. 构建springboot项目
+
+2. 打包应用
+
+3. 编写dockerfile
+
+    >  idea需要下载Docker的插件
+
+    ~~~shell
+    # 文件名最好起 Dockerfile
+    FROM java:8
+    COPY *.jar /app.jar
+    CMD ["--server.port=8080"]
+    EXPOSE 8080
+    ENTRYPOINT ["java","-jar","./app.jar"]
+    ~~~
+
+4. 构建镜像
+
+    将打好的`jar包`和编写的`Dockerfile文件` 上传到同一目录下，进行构建镜像
+
+    ~~~shell
+    [root@zyh idea]# docker build -t zyhideatest .
+    ~~~
+
+5. 发布运行
+
+    ~~~shell
+    [root@zyh idea]# docker run -d -p 3344:8080 --name spring-test-01 zyhideatest
+    ~~~
+
+6. 测试
+
+~~~shell
+curl localhost:3344
+~~~
 

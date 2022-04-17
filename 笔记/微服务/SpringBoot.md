@@ -780,6 +780,15 @@ public class MyMvcConfig implements WebMvcConfigurer {
 
 ## 扩展MVC
 
+如果Controller层的return不能正常跳转，需要加上`thymeleaf` 
+
+~~~xml
+<dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+~~~
+
 **需要依赖支持**	**需要导入jar包**
 
 **springboot** 的MVC

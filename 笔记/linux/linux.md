@@ -168,7 +168,7 @@ cp 原来的地方  新的地方
 
 -u ：只替换已经更换过的文件
 
-mv 文件名 文件名2
+mv 文件名 文件名2 
 
 > make  会扫描 Makefile 找到目标及其依赖
 
@@ -505,9 +505,8 @@ rpm -e --nodeps jdk查到的jdk版本		 # 卸载
 # 先查看jdk的路径 在 /usr/java/jdkxxxx
 # 在 /etc/profile 文件里添加：
 JAVA_HOME=/usr/java/jdk1.8.0_321-amd64
-CLASSPATH=%JAVA_HOME%/lib;%JAVA_HOME%/jre/lib
-PATH=$JAVA_HOME/bin;$JAVA_HOME/jre/bin
-export PATH CLASSPATH JAVA_HOME
+CLASSPATH=%JAVA_HOME%/lib:%JAVA_HOME%/jre/lib
+export  CLASSPATH JAVA_HOME
 ~~~
 
 ~~~bash
