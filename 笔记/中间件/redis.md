@@ -35,7 +35,7 @@ NoSql
 - .....
 ~~~
 
-#### NoSQL四大分类
+ **NoSQL四大分类**
 
 **KV键值对：**
 
@@ -1245,4 +1245,382 @@ appendfilename "appendonly.aof"	# 持久化的文件名字
 appendfsync everysec		# 每秒执行一次 sync，可能会丢失这 1s的数据
 # appendfsync no			# 不执行 sync，让操作系统自己同步，速度最快
 ~~~
+
+#### 外网连接
+
+1.  daemonize yes
+2. 注释 bind 127.0.0.1
+3. protected-mode no
+4. 开放端口
+
+如果还不行，就配置一个密码
+
+~~~shell
+127.0.0.1:6379> config set requirepass 123456
+~~~
+
+## Redis持久化
+
+Redis 是内存数据库，如果不将内存中的数据库状态保存到磁盘，那么服务器一旦进行退出，服务器中的数据库状态也会小时，所以Redis提供了持久化功能
+
+#### rdb
+
+在指定的时间间隔内将内存中的数据集快照写入磁盘，也就是snapshot快照，它恢复是将快照文件直接读到内存中。
+
+![](./images/redis03.png)
+
+Redis会单独创建一个子进程来进行持久化，会先将数据写入到一个临时文件中，待持久化过程结束了，再将这个临时文件替换上次持久化好的文件。整个过程中，主进程不进行任何IO操作，有极高的性能。如果需要进行大规模数据的恢复，一旦对于数据恢复的完整性不是非常敏感，那么 rdb 方式比aof方式更加高效。rdb的缺点是最后一次持久化后的数据可能会丢失
+
+**rdb 保存的文件是 dump.rdb**
+
+~~~shell
+# 修改 保存机制
+save 60 3		# 60s 内改动三个key就会进行持久化操作
+~~~
+
+~~~shell
+bgsave	：Redis会在后台异步进行快照操作， 快照同时还可以响应客户端请求。
+save	：save时只管保存，其它不管，全部阻塞。手动保存。不建议。
+~~~
+
+**触发机制**
+
+1. 执行 flushall 命令，会触发 rdb（但产生的是个空的，没有意义）
+2. 退出redis，也会产生 rdb 文件
+3. 执行 `save` 命令
+
+**恢复 rdb 文件**
+
+1. 将 rdb 文件放在redis 启动目录就可以
+2. 查看需要存放的位置
+
+~~~shell
+127.0.0.1:6379> config get dir
+1) "dir"
+2) "/usr/local/bin"				# 如果此目录下存在 dump.rdb文件，启动就会自动恢复其中的数据
+~~~
+
+**优点：**
+
+	1. 适合大规模的数据恢复
+	1. 对数据的完整性要求不高
+
+**缺点：**
+
+	1. 需要一定的时间间隔进程操作，如果redis意外宕机了，最后一次修改的数据就没有了
+	1. fork进程的时候，会占用一定的内存空间
+
+#### AOF
+
+> AOF  （Append Only File）
+
+![](./images/redis04.webp)
+
+将所有的命令都记录下来，history，恢复的时候会将这个文件全部再执行一遍
+
+**aof 保存的是 appendonly.aof 文件**
+
+~~~shell
+# 默认不开启，需要手动开启
+appendonly yes
+~~~
+
+如果 aof 文件出现了错误，redis启动不起来，需要修复这个aof文件
+
+redis提供了一个工具 `redis-check-aof`
+
+~~~shell
+redis-check-aof --fix redis-check-aof
+~~~
+
+**优点：**
+
+	1. 每一次修改都同步，文件的完整性会更好
+	1. 默认开启每秒同步一次，可能会丢失一秒的数据
+	1. 从不同步，效率最高
+
+**缺点：**
+
+	1. 相对于数据文件来说，aof 远远大于 rdb，修复的速度也比 rdb 慢
+	1. aof 运行效率也要比 rdb慢，所以redis默认的配置就是rdb持久化
+
+#### 小结
+
+1. rdb 持久化方式能够在指定的时间间隔内对数据进行快照存储
+2. aof 持久化方式记录每次对服务器 **写** 的操作，当服务器重启的时候会重新执行这些命令来恢复原始的数据，每次都是追加到文件末尾，Redis 还能对aof文件进行后台重写，使aof文件体积不至于过大
+3. **只做缓存，可以不做任何持久化**
+4. 同时开启两种持久化方式
+    1. 这种情况下，当redis重启的时候会优先载入aof文件来恢复原始的数据，因为通常情况下aof文件保存的数据比rdb文件保存的数据集更完整
+    2. rdb的数据不实时，同时使用两者时服务器重启也只会找aof文件
+5. 性能建议
+    1. rdb文件可以作后备用途，建议开启 15 分钟备份一次
+    2. 如果 Enable aof，好处是最恶劣的情况下最多只丢失两秒的数据，代价是带来了持续的 IO
+    3. 如果不 Enable aof，仅靠Master-Alave Repllcation（主从复制）实现高可用性也可以省掉一大笔 IO，也减少了readwrite带来的系统波动。代价是如果Master/Slave同时倒掉（比如断电的情况）会丢失十几分钟的数据，启动脚本也要比较 Master/Slave中的rdb文件。载入新的
+
+## 发布订阅（了解）
+
+Redis 发布订阅 (pub/sub) 是一种消息通信模式：发送者 (pub) 发送消息，订阅者 (sub) 接收消息。
+
+Redis 客户端可以订阅任意数量的频道。
+
+~~~shell
+# subscribe					# 订阅给定的一个或多个频道的信息
+# publish					# 将信息发送到指定的频道
+
+# 订阅端
+127.0.0.1:6379> subscribe zhang				# 订阅一个频道
+Reading messages... (press Ctrl-C to quit)	# 等待读取推送的信息
+1) "subscribe"
+2) "zhang"
+3) (integer) 1
+127.0.0.1:6379> subscribe zhang
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "zhang"
+3) (integer) 1
+1) "message"								# 消息
+2) "zhang"									# 哪个频道
+3) "test"									# 消息的具体信息
+# 在开一个终端发送消息
+127.0.0.1:6379> publish zhang test			# 给指定频道发送信息，信息为 test
+(integer) 1
+~~~
+
+**原理：**
+
+Redis 通过 publish、subscribe、psubscribe 等命令实现发布和订阅功能
+
+通过 subscribe 命令订阅某频道后，redis-server里面维护了一个字典，字典的键就是一个个的频道，而字典的值则是一个链表。链表中保存了所有订阅这个 channer的客户端。 subscribe命令就是将客户端添加到给定的 channel 的订阅立案表中
+
+通过publish 命令向所有订阅者发送消息， redis-server 会使用给定的频道作为键，在其维护的channel 字典中查找记录了订阅这个频道的所有客户端的链表，遍历这个链表，将消息发布給所有的订阅者
+
+## 主从复制
+
+主从复制，是指将一台Redis服务器的数据，复制到其他的Redis服务器。前者称为主节点（master）后者称为从节点（slave）; **数据的复制是单向的，只能由主节点到从节点** Master 以写为主，slave以读为主
+
+默认情况下，每台Redis服务器都是主节点，且一个主节点可以有多个从节点或没有从节点，但一个从节点只能有一个主节点
+
+**主从复制的作用：**
+
+1. 数据冗余：主从复制实现了数据的热备份，是持久化之外的一种数据冗余方式
+2. 故障恢复：当主节点出现问题时，可以由从节点提供服务，实现快速的故障恢复
+3. 负载均衡：在主从复制的基础上，配合读写分离，可以由主节点提供写服务，由从节点提供读服务，分担服务器负载，尤其是写少读多的场景下
+4. 高可用基石：主从复制还是哨兵和机群能够实施的基础 
+
+**环境配置**
+
+只配置从库，不用配置主库
+
+~~~~shell
+127.0.0.1:6379> info replication		# 查看当前库的信息
+# Replication
+role:master								# 角色
+connected_slaves:0						# 从机数(此时没有从机)
+master_failover_state:no-failover
+master_replid:54e9b9bd78247058d4520c57033ff2797c22c5b6
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:0
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+~~~~
+
+复制 3 个配置文件，然后修改对应的信息（因为在一台服务器上）
+
+1. 端口 2. pid名字 3. log文件名字 4. dump.rdb 名字 
+
+~~~shell
+port 6381
+pidfile /var/run/redis_6380.pid
+logfile "6380.log"
+dbfilename dump6380.rdb
+# 查看
+[root@zyh bin]# ps -ef | grep redis
+root     10150     1  0 19:35 ?        00:00:00 redis-server 127.0.0.1:6380
+root     10158     1  0 19:35 ?        00:00:00 redis-server 127.0.0.1:6381
+root     10203     1  0 19:36 ?        00:00:00 redis-server 127.0.0.1:6379
+~~~
+
+**配置主从**
+
+~~~shell
+# slaveof				# 将当前服务器转变为指定服务器的从属服务器
+127.0.0.1:6380> slaveof 127.0.0.1 6379
+OK
+~~~
+
+真实的主从配置应该在配置文件中配置，这样才是永久，这里是命令配置，只是暂时的重启就没了
+
+~~~shell
+replicaof <masterip> <masterport>			# 配置主机是谁
+masterauth <master-password>				# 如果主机有密码
+~~~
+
+**细节：**
+
+- 主机可以写，从机不能写只能读，朱继忠的所有信息和数据，都会自动被从机保存
+- 主机宕机了，从机依旧连接到主机的，但是没有写操作，如果主机回来了，从机依旧可以直接获取到主机写的信息
+
+**从机变为主机**
+
+如果主机宕机了，可以手动将一个从机升级为主机，SLAVEOF NO ONE 不会丢弃同步所得数据集
+
+~~~shell
+127.0.0.1:6381> slaveof no one			# 从机变为主机
+OK
+~~~
+
+**复制原理：**
+
+Slave 启动成功连接到 master 后会发送一个 sync 同步命令
+
+master 接到命令后，启动后台的存盘进程，同时收集所有接收到的用于修改数据集命令，在后台进程执行完毕后，**master将发送整个数据文件到slave，并完成一次完全同步**
+
+**全量复制：** slave服务在接收到数据文件的数据后，将其存盘并加载到内存中
+
+**增量复制：** master 继续将新的所有收集到的修改命令一次传给slave，完成同步
+
+只要是重新连接master，一次全量复制就将被自动执行
+
+#### 哨兵模式
+
+能够后台监控主机是否故障，如果故障了会根据投票数**自动将从机转换为主机**
+
+![](./images/redis05.png)
+
+这里的哨兵有两个作用
+
+- 通过发送命令，让Redis服务器返回监控其运行状态，包括主服务器和从服务器
+- 当哨兵检测到master宕机，会自动将slave切换为master，然后通过**发布订阅**通知其他的从服务器，修改配置文件，让它们切换主机
+
+然而一个哨兵进程对Redis服务器进行监控，也可能会出现问题，因此，可以使用多个哨兵进行监控
+
+![](./images/redis06.png)
+
+假设主服务器宕机，哨兵1先检测到这个结果，系统并不会立马进行failover过程，仅仅是哨兵1主观的认为主服务器不可用，这个现象称为**主观下线**。当后面的哨兵也检测到主服务器不可用，并且数量达到一定值时，哨兵之间就会进行一次投票，投票的结果由一个哨兵发起，进行failover[故障转移]操作。切换成功后，就会通过**发布订阅** 模式让各个哨兵把自己监控的从服务器实现切换主机，这个过程称为**客观下线**
+
+**配置**
+
+1. 配置哨兵配置文件 sentinel.conf
+
+~~~shell
+# 默认端口
+port 26379
+# sentinel monitor 被监控的名称 host port 这个数字1代表主机挂了，投票某一从机变成主机
+sentinel monitor mytest 127.0.0.1 6379 1
+~~~
+
+2. 启动哨兵
+
+~~~shell
+[root@zyh bin]# redis-sentinel zconfig/sentinel.conf 
+~~~
+
+**测试主机宕机**
+
+~~~shell
+# 主机宕机后 哨兵日志
+16957:X 20 Apr 2022 21:53:20.450 * +failover-state-send-slaveof-noone slave 127.0.0.1:6380 127.0.0.1 6380 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:20.527 * +failover-state-wait-promotion slave 127.0.0.1:6380 127.0.0.1 6380 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:21.487 # +promoted-slave slave 127.0.0.1:6380 127.0.0.1 6380 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:21.488 # +failover-state-reconf-slaves master mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:21.557 * +slave-reconf-sent slave 127.0.0.1:6381 127.0.0.1 6381 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:22.513 * +slave-reconf-inprog slave 127.0.0.1:6381 127.0.0.1 6381 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:22.513 * +slave-reconf-done slave 127.0.0.1:6381 127.0.0.1 6381 @ mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:22.565 # +failover-end master mytest 127.0.0.1 6379
+16957:X 20 Apr 2022 21:53:22.565 # +switch-master mytest 127.0.0.1 6379 127.0.0.1 6380
+16957:X 20 Apr 2022 21:53:22.565 * +slave slave 127.0.0.1:6381 127.0.0.1 6381 @ mytest 127.0.0.1 6380
+16957:X 20 Apr 2022 21:53:22.565 * +slave slave 127.0.0.1:6379 127.0.0.1 6379 @ mytest 127.0.0.1 6380
+16957:X 20 Apr 2022 21:53:52.601 # +sdown slave 127.0.0.1:6379 127.0.0.1 6379 @ mytest 127.0.0.1 6380
+~~~
+
+**如果此时主机回来了， 那么只能归并到新的主机下，当做从机**
+
+**优点：**
+
+ 	1. 哨兵集群，基于主从复制模式，所有的主从配置优点哨兵模式都有
+ 	2. 主从可以切换，出故障可以转移，系统的可用性变好
+ 	3. 哨兵模式就是主从模式的升级，手机到自动，更加健壮
+
+**缺点：**
+
+ 	1. Redis 不好在线扩容，集群容量一旦到达上线，在线扩容十分麻烦
+ 	2. 实现哨兵模式的配置很麻烦
+
+**哨兵模式的全部配置**
+
+~~~shell
+# Example sentinel.conf
+ 
+# 哨兵sentinel实例运行的端口 默认26379
+port 26379
+ 
+# 哨兵sentinel的工作目录
+dir /tmp
+ 
+# 哨兵sentinel监控的redis主节点的 ip port 
+# master-name  可以自己命名的主节点名字 只能由字母A-z、数字0-9 、这三个字符".-_"组成。
+# quorum 当这些quorum个数sentinel哨兵认为master主节点失联 那么这时 客观上认为主节点失联了
+# sentinel monitor <master-name> <ip> <redis-port> <quorum>
+sentinel monitor mymaster 127.0.0.1 6379 1
+ 
+# 当在Redis实例中开启了requirepass foobared 授权密码 这样所有连接Redis实例的客户端都要提供密码
+# 设置哨兵sentinel 连接主从的密码 注意必须为主从设置一样的验证密码
+# sentinel auth-pass <master-name> <password>
+sentinel auth-pass mymaster MySUPER--secret-0123passw0rd
+ 
+ 
+# 指定多少毫秒之后 主节点没有应答哨兵sentinel 此时 哨兵主观上认为主节点下线 默认30秒
+# sentinel down-after-milliseconds <master-name> <milliseconds>
+sentinel down-after-milliseconds mymaster 30000
+ 
+# 这个配置项指定了在发生failover主备切换时最多可以有多少个slave同时对新的master进行 同步，
+这个数字越小，完成failover所需的时间就越长，
+但是如果这个数字越大，就意味着越 多的slave因为replication而不可用。
+可以通过将这个值设为 1 来保证每次只有一个slave 处于不能处理命令请求的状态。
+# sentinel parallel-syncs <master-name> <numslaves>
+sentinel parallel-syncs mymaster 1
+
+# 故障转移的超时时间 failover-timeout 可以用在以下这些方面： 
+#1. 同一个sentinel对同一个master两次failover之间的间隔时间。
+#2. 当一个slave从一个错误的master那里同步数据开始计算时间。直到slave被纠正为向正确的master那里同步数据时。
+#3.当想要取消一个正在进行的failover所需要的时间。  
+#4.当进行failover时，配置所有slaves指向新的master所需的最大时间。不过，即使过了这个超时，slaves依然会被正确配置为指向master，但是就不按parallel-syncs所配置的规则来了
+# 默认三分钟
+# sentinel failover-timeout <master-name> <milliseconds>
+sentinel failover-timeout mymaster 180000
+ 
+# SCRIPTS EXECUTION
+ 
+#配置当某一事件发生时所需要执行的脚本，可以通过脚本来通知管理员，例如当系统运行不正常时发邮件通知相关人员。
+#对于脚本的运行结果有以下规则：
+#若脚本执行后返回1，那么该脚本稍后将会被再次执行，重复次数目前默认为10
+#若脚本执行后返回2，或者比2更高的一个返回值，脚本将不会重复执行。
+#如果脚本在执行过程中由于收到系统中断信号被终止了，则同返回值为1时的行为相同。
+#一个脚本的最大执行时间为60s，如果超过这个时间，脚本将会被一个SIGKILL信号终止，之后重新执行。
+ 
+#通知型脚本:当sentinel有任何警告级别的事件发生时（比如说redis实例的主观失效和客观失效等等），将会去调用这个脚本，
+#这时这个脚本应该通过邮件，SMS等方式去通知系统管理员关于系统不正常运行的信息。调用该脚本时，将传给脚本两个参数，
+#一个是事件的类型，
+#一个是事件的描述。
+#如果sentinel.conf配置文件中配置了这个脚本路径，那么必须保证这个脚本存在于这个路径，并且是可执行的，否则sentinel无法正常启动成功。
+#通知脚本
+# sentinel notification-script <master-name> <script-path>
+  sentinel notification-script mymaster /var/redis/notify.sh
+ 
+# 客户端重新配置主节点参数脚本
+# 当一个master由于failover而发生改变时，这个脚本将会被调用，通知相关的客户端关于master地址已经发生改变的信息。
+# 以下参数将会在调用脚本时传给脚本:
+# <master-name> <role> <state> <from-ip> <from-port> <to-ip> <to-port>
+# 目前<state>总是“failover”,
+# <role>是“leader”或者“observer”中的一个。 
+# 参数 from-ip, from-port, to-ip, to-port是用来和旧的master和新的master(即旧的slave)通信的
+# 这个脚本应该是通用的，能被多次调用，不是针对性的。
+# sentinel client-reconfig-script <master-name> <script-path>
+sentinel client-reconfig-script mymaster /var/redis/reconfig.sh
+~~~
+
+## 缓存穿透和雪崩
 
