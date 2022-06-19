@@ -115,7 +115,7 @@
     <!DOCTYPE mapper
             PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-    <mapper namespace="dao.BookMapper">
+    <mapper namespace="com.dao.BookMapper">
         <select id="queryAllBook" resultType="pojo.Books">
             select * from books
         </select>
@@ -129,6 +129,19 @@
     <mappers>
         <mapper resource="dao/BookMapper.xml"/>
     </mappers>
+    <!--d-->
+    <mappers>
+        <mapper class="com.bank.mapper.UserMapper"/>
+    </mappers>
+    ~~~
+
+    也可以：（在spring-dao.xml 文件中）
+
+    ~~~xml
+    <!-- 扫描mapper包，转换成映射 -->
+    <bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.bank.mapper"/>
+    </bean>
     ~~~
 
 4. service 层接口编写
@@ -144,6 +157,7 @@
 5. 编写service 接口的实现类
 
     ~~~java
+    @Service
     public class BookServiceImpl implements BookService{
         // 业务层调dao 层
         private BookMapper bookMapper;// set注入
@@ -157,6 +171,28 @@
         }
         // 业务....
     }
+    ~~~
+    
+6. 将写好的service实现类注入到spring容器中
+
+    ~~~xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:tx="http://www.springframework.org/schema/tx"
+           xmlns:aop="http://www.springframework.org/schema/aop"
+           xmlns:context="http://www.springframework.org/schema/context"
+           xsi:schemaLocation="http://www.springframework.org/schema/beans
+                               https://www.springframework.org/schema/beans/spring-beans.xsd
+                               http://www.springframework.org/schema/tx
+                               http://www.springframework.org/schema/tx/spring-tx.xsd
+                               http://www.springframework.org/schema/aop
+                               https://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+    
+        <!--    扫描service下的包-->
+        <context:component-scan base-package ="com.bank.service.impl"/>
+    
+    </beans>
     ~~~
 
 #### 整合Spring层
@@ -178,14 +214,14 @@
         <property name="dataSource" ref="dataSource"/>
         <!--绑定mybatis配置文件-->
         <property name="configLocation" value="mybatis-config.xml"/>
+        <!--mybatis中的sql语句 默认是找接口同目录下的-->
+        <!--<property name="mapperLocations" value="classpath:mapper/*.xml" />-->
     </bean>
     
     <!--配置dao接口扫描包，动态的实现Dao接口可以注入到Spring容器中.代替了給接口加实现类-->
-    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
-        <!--注入 SQLSessionFactory-->
-        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
-        <!--要扫描的Dao包-->
-        <property name="basePackage" value="dao" />
+    <!-- 扫描mapper包，转换成映射 -->
+    <bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.bank.mapper"/>
     </bean>
     ~~~
 
@@ -193,11 +229,7 @@
 
     ~~~xml
     <!--1.扫描service的包-->
-    <context:component-scan base-package="service"/>
-    <!--2.将所有业务类，注入到Spring中,此处用xml配置-->
-    <bean id="BookServiceImpl" class="service.BookServiceImpl">
-        <property name="bookMapper" ref="bookMapper"/>
-    </bean>
+    <context:component-scan base-package ="com.bank.service.impl"/>
     
     <!--3. 声明式事务配置-->
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
@@ -205,8 +237,11 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
     <!--4. aop事务支持-->
+    <!-- 开启事务注解支持，可以使用注解管理事务-->
+    <!-- 必须注入 事务管理器对象 -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
     ~~~
-
+    
 3. applicationContext.xml
 
     ~~~xml

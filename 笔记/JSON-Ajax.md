@@ -83,3 +83,73 @@ function a1(){
 }
 用户名:<input type="text" id="txtName" onblur="a1()"/>
 ~~~
+
+#### url小问题
+
+~~~java
+// url: '/account/edit?accountId=' + ${account.uid} ,
+// 写成上面那种，el表达式后面有个 ',' 可能前端会报下面的错误
+// 这个时候替换成这种试试 url: '/account/edit?accountId=' + ${account.uid} +'',
+VM423:54 Uncaught SyntaxError: Unexpected token ','
+    at b (jquery-3.5.0.min.js:2:839)
+    at Pe (jquery-3.5.0.min.js:2:48553)
+    at S.fn.init.append (jquery-3.5.0.min.js:2:49904)
+    at layui.all.js:5:7688
+    at s.pt.vessel (layui.all.js:5:5018)
+    at s.pt.creat (layui.all.js:5:7411)
+    at new s (layui.all.js:5:4190)
+    at Object.r.open (layui.all.js:5:23194)
+    at Object.success (all:164:27)
+    at c (jquery-3.5.0.min.js:2:28294)
+~~~
+
+#### 想传一个对象一个String
+
+~~~xml
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>fastjson</artifactId>
+    <version>1.2.79</version>
+</dependency>
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-core</artifactId>
+    <version>2.9.5</version>
+</dependency>
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.9.5</version>
+</dependency>
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-annotations</artifactId>
+    <version>2.9.5</version>
+</dependency>
+~~~
+
+~~~js
+// 前端
+$.ajax({
+    url: '/account/in',
+    type: 'post',
+    data: {
+        value:JSON.stringify(value),
+        acid:acid
+    },
+    success: function (data) {}
+})
+~~~
+
+~~~java
+// 后端
+@PostMapping("/account/in")
+@ResponseBody
+public String accountIn(@RequestParam("value") String value,@RequestParam("acid") String acid){
+    System.out.println("==="+acid);
+    Card card = JSONObject.parseObject(value,Card.class);
+
+}
+~~~
+

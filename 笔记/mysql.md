@@ -45,28 +45,39 @@ InooDB 在5.7之前版本重启数据库自增量会从 1 开始(因为存在在
 
 不设置的话，mysql默认字符集编码是**Latin1**，不支持中文
 
+如果存在字符**有email表情**，需要将编码改为 utf8mb4
+
 > 也可以在my.ini文件中配置默认的编码
 
 ~~~ini
 character-set-server=utf8
 ~~~
 
+**校对规则：**
+
+utf8_bin：区分大小写
+
+utf8_general_ci：不区分大小写
+
 ## 安装mysql
 
 > sc delete mysql	清空服务;     在安装出现意外时使用
 
-- 官网下载 [MySQL](https://www.mysql.com/)
-- 最好下载压缩包，自己配置。     '.exe'不好卸载
+- 官网下载 [MySQL](https://www.mysql.com/)   （最好下载压缩包，自己配置。     '.exe'不好卸载）
+- 解压
 - 配置环境变量
 - 在mysql目录下新建mysql配置文件my.ini文件
 
 ~~~mysql
+[client]
+# 设置mysql客户端连接服务端时默认使用的端口
+port=3306
 [mysqld]
-# 路径后面加上"\"
+# 路径后面加上"\",路径为自己 mysql 的安装目录
 basedir=路径\
 datadir=路径\data\		   # 不要自己新建data，自动生成
 port=3306					# 端口
-ship-grant-tables			# 用来跳过密码验证
+ship-grant-tables			# 用来跳过密码验证，配置完删掉
 ~~~
 
 - 启动**管理员模式**下的CMD，并将路径切换到mysql下的**bin目录**，然后输入**`mysqld -install`** (安装mysql)
@@ -86,7 +97,9 @@ update mysql.user set authentication_string=password('123456') where user='root'
 
 #### 数据库的列类型
 
-> 数值
+数据库的列类型代表的就是数据类型
+
+**数值**
 
 - tinyint			十分小的数据	1个字节       java的Integer
 - smallint          较小的数据        2个字节       java的Integer
@@ -98,18 +111,34 @@ update mysql.user set authentication_string=password('123456') where user='root'
 
 decimal(9,2)	 代表 整数 9 位，小数 2 位      **java.math.BigDecimal**
 
-> 字符串
+**字符串**
 
-- char				  字符串固定的大小 		0~255                    java的String
-- **varchar           可变字符串                    0~65535**     常用    java的String
+- char				  字符串固定的大小 		**0~255 字符 **               java的String
+- **varchar           可变字符串                    0~65535字节**  常用    java的String
+
 - tinytext             微型文本                        
-- text                    文本串                            保存大文本            java的String
+- text               文本串 , 可以当做不指定默认大小的varchar   0~65535     java的String
+- longtext             文本串 ，保存大文本      0~2^32-1
 
-> 时间日期
+注：
+
+1. 如果是utf8编码（一个字符三字节），再需要1-3个字节记录大小，则最大为21844字符
+
+    如果是gbk编码（一个字符两个字节）, 再需要1-3个字节记录大小 , 则最大为(65535-3)/2
+
+2. 也就是 varchar(4) 表示4个字符且**不区分汉字或者字母**，具体多少个字节，按照编码计算
+
+3. char(4) 是定长，即使插入'a'，只使用一个字符空间，但仍然会分配4个字符的空间
+
+    varchar(4) 是变长(可变)，插入'a'，实际就只占一个字符的空间，具体多少字节按照编码计算（还需要再加上varchar本身需要的1-3字节来记录大小）
+
+4. 查询速度 **char > varchar**，所以可以确定固定大小的时候，使用char，比如md5加密等
+
+**时间日期**
 
 - date					YYYY-MM-DD 			日期时间
 - time                     HH:mm:ss                 时间格式
-- **datetime             YYYY-MM-DD HH:mm:ss**   常用   java的Date（jdk1.8后使用可以使用LocalDateTime）
+- **datetime             YYYY-MM-DD HH:mm:ss**   常用   java的Date（jdk1.8及其以后可以使用LocalDateTime）
 - timestamp           时间戳              1970.1.1到现在的毫秒数  常用
 - year                       年份表示
 
@@ -117,10 +146,11 @@ decimal(9,2)	 代表 整数 9 位，小数 2 位      **java.math.BigDecimal**
 
 #### 数据库的字段属性
 
-> Unsigned
+**Unsigned**
 
 - 无符号的整数
-- 声明了该列不能声明为负数
+- 声明了该列不能存入负数
+- 假设-128~127，则声明为无符号之后范围则变为 0~255
 
 > Zerofill
 
@@ -145,7 +175,7 @@ exit;						-- 退出连接
 
 > 如果不希望給大写，可以在前后加上**`** 符号。用来区别关键字和标识符
 
-## 操作数据库
+## DDL操作数据库
 
 #### 操作数据库
 
@@ -153,7 +183,7 @@ exit;						-- 退出连接
 create database 数据库名;	-- 创建数据库
 drop database 数据库名;		-- 删除数据库
 use 数据库名;				-- 使用数据库
-show dababases;			   -- 显示所有数据库
+show databases;			   -- 显示所有数据库
 ~~~
 
 ~~~sql
@@ -165,21 +195,29 @@ create database [if not exists] 数据库名;
 
 ~~~sql
 -- 表名 和 字段 尽量使用 `` 括起来
--- auto——increment 自增
+-- auto_increment 自增
 -- comment ''	备注
 -- default 设置默认值
+-- unique	唯一，不能重复(null 除外，null可以有多个)
 create table if not exists `student`(
-	`id` int(4) not null auto_increment comment '学号',
-    `name` varchar(30) not null default '匿名' comment '姓名',
+	`id` int not null auto_increment comment '学号',
+    `name` varchar(30) not null default '匿名' comment '姓名' unique,
     `pwd` varchar(20) not null default '123456' comment '密码',
     `sex` varchar(2) not null default '男' comment '性别',
     `birthday` datetime default null comment '出生日期',
     `address` varchar(30) default null comment '家庭住址',
     `email` varchar(20) default null comment '邮箱',
     primary key(`id`)
- )engine=InnoDB default charset=utf8
+ )engine=InnoDB charset=utf8 collate=utf8_general_ci
  -- engine=InnoDB	引擎
  -- charset=utf8	设置字符集
+ -- collate=utf8_general_ci 设置校验规则(此处为不区分大小写)
+~~~
+
+~~~sql
+-- 自增长默认从1开始，可以通过如下命令修改开始的值
+alter table 表名 auto_increment = 新开始的值;
+-- 如果添加数据时，给自增长字段指定了一个值，则按照指定的值开始自增长
 ~~~
 
 **公式**
@@ -205,6 +243,8 @@ desc 表名;					  -- 查看表的具体结构
 ~~~sql
 -- 修改表名
 alter table 旧表名 rename as 新表名;
+-- 修改表的字符集
+alter table 表名 character set 字符集;
 -- 增加表的字段
 alter table 表名 add 列名 类型();
 -- 修改表的字段
@@ -236,7 +276,11 @@ drop table [if exists] 表名;
 
 #### 外键
 
+> 设置外键的前提：主表必须具有主键约束或unique约束，且主表有想要设置为外键的列
+
 保持数据一致性，完整性，主要目的是控制存储在外键表中的数据。使两张表形成关联，外键只能引用外表中列的值！
+
+外键值可以为 null（允许的话）
 
 删除有外键关系的表的时候，必须先删除引用别人的表，再删除被引用的表
 
@@ -266,6 +310,26 @@ alter table `表名` add constraint `约束名` foreign key (`作为外键的列
 alter table `表名` drop foreign key `约束名`;
 ~~~
 
+#### check约束
+
+check 用于强制行数据必须满足的条件
+
+注：mysql5.7 的check只作语法校验，不会真实生效，mysql8.0.16后支持，oracle和sql server 支持 check 约束
+
+~~~sql
+-- 列名 类型 check(条件)
+sex varchar(2) check(sex in('男'),('女'))，
+sal double check（sal > 1000 and sal <2000）
+~~~
+
+#### 枚举
+
+可以当成约束使用
+
+~~~sql
+sex ENUM('男','女'),
+~~~
+
 ## DML
 
 #### 插入
@@ -273,7 +337,7 @@ alter table `表名` drop foreign key `约束名`;
 ~~~sql
 -- 插入值
 insert into `表名`(`列名1`,`列名2`) values (`列名1的值`,`列名2的值`);
--- 不写列名，插入的值会和表一一匹配
+-- 不写列名，插入的值会和表中的列一一匹配
 insert into `表名` values (`列名1的值`,`列名2的值`);
 -- 插入多条数据
 insert into `表名` values('',''···),('',''···);
@@ -317,6 +381,43 @@ truncate `表名`;
     - truncate 重新设置 自增列 计数器会归零
     - truncate 不会影响事务
 
+#### 表复制与去重
+
+~~~sql
+create table test01 like test; 	-- 将test表的结构(列)，复制到test01
+~~~
+
+
+
+~~~sql
+-- 将 test 表数据复制到 test01 
+insert into test01(id,name,sal······)
+		select id,name,sal······ from test;
+-- 自我复制
+insert into test01
+		select * from test01;
+~~~
+
+**去重**
+
+思路：
+
+1. 先创建一张临时表，该表的结构和 test 一样
+2. 把test 的记录 通过 distinct 关键字处理后复制到临时表
+3. 清除掉 test 记录
+4. 将临时表的记录复制到 test中
+5. drop 掉 临时表
+
+~~~sql
+create table temp like test;
+insert into temp 
+		select distinct * from test;
+delete * from test
+insert into test
+		select * from temp;
+drop table temp;
+~~~
+
 ## *DQL
 
 > select 语法
@@ -358,11 +459,64 @@ select `列名`+1 from `表名`    -- 还能給数字加 1
 select distinct `列名` from `表名`;
 ~~~
 
-**where 条件字句**
+**any 和 all**
 
-like	模糊查询 	% 代表{0,}   _ 代表一个字符
+~~~sql
+-- all 代表比全部高|低，相当于MAX()
+select * from t where sal > all(select sal from t where id = 1);
+-- 相当于
+select * from t where sal > (select MAX(sal) from t where id = 1);
+~~~
+
+~~~sql
+-- any 代表比任何一个高|低，相当于MIN()
+select * from t where sal > any(select sal from t where id = 1);
+-- 相当于
+select * from t where sal > (select MIN(sal) from t where id = 1);
+~~~
+
+#### where 条件语句
+
+**逻辑运算符**
+
+- and：多个条件同时成立
+- or：多个条件任一成立
+- not：不成立，即取反
+
+**比较运算符**
+
+- <、>、>= 、<=、 =、 <>（ !=）：小于、大于、大于等于、小于等于、等于、不等于
+
+- between....and....：显示在某一区间的值，闭区间
+
+    ~~~sql
+    where test between 10 and 20;
+    -- 相当于
+    where test >= 10 and test <= 20;
+    ~~~
+
+- in（）：显示括号中的包含的值
+
+- is null：判断是否为空
+
+- like '张'：模糊查询. '%' 表示0到多个任意字符. '_' 表示单个字符 
+
+~~~sql
+where like '张';		-- = 张的
+where like '%张';	-- 以张 结尾 的
+where like '张%';	-- 以张 开头 的
+where like '%张%';	-- 包含 张 的
+
+where like '张_';	-- 查找叫 张x 的人
+~~~
 
 #### 联表查询 join
+
+**union all**：合并查询（求交集），不能自动去重
+
+**union**	： 合并查询（求交集），能自动去重
+
+
 
 ![](./images/mysql01.png)
 
@@ -388,22 +542,20 @@ union
 select * from `表名1` [xxx] left join `表名2` on `相同的列`=`相同的列`
 ~~~
 
-> 原来的语句：select * from A full outer join B on A.key = B.key where A.key is null and B.key is null   需要变成
+> 原来的语句：select * from A full outer join B on A.key = B.key   需要变成
 
 ~~~sql
-select * from `表名1` [xxx] right join `表名2` on `相同的列`=`相同的列` where `表名2`.`相同的列` is null
+select * from `表名1` [xxx] right join `表名2` on `相同的列`=`相同的列`
 union 
-select * from `表名1` [xxx] left join `表名2` on `相同的列`=`相同的列` where `表名1`.`相同的列` is null
+select * from `表名1` [xxx] left join `表名2` on `相同的列`=`相同的列` 
 ~~~
-
-#### 联表查询 自连接
 
 #### 分页和排序
 
 排序 order by
 
 ~~~sql
-select * from `表名` where 条件 order by `列名` asc| desc
+select * from `表名` where 条件 order by `列名` asc| desc -- asc 上到下升序,小到大
 ~~~
 
 分页
@@ -421,7 +573,7 @@ limit 0,5
 #第一页		limie 0,5
 #第二页		limie 5,5
 #第三页		limie 10,5
-#第N页		limie (n-1)*5,5
+#第N页		limie (n-1)*5,5 
 公式：(n-1)*pageSize,pageSize 
 #pageSize:页面大小
 #n：当前页
@@ -455,6 +607,7 @@ having 聚合函数的表达式			 -- 过滤
 
 ~~~sql
 select ABS(-8)		-- 绝对值
+select conv(8,10,2) -- 进制转换，此处为 8是10进制的 8 转换为2进制
 select CEILING(9.4)	-- 向上取整
 select FLOOR(9.4)	-- 向下取整
 select RAND()		-- 返回一个0~1之间的随机数
@@ -464,21 +617,37 @@ select SIGN(10)		-- 判断一个数的符号 负数返回-1  整数返回 1
 > 字符串函数
 
 ~~~sql
+select CHARSET(str)			-- 返回字串字符集
+select UCASE(str)			-- 转换为大写
+select LCASE(str)			-- 转换为小写
+select LENGTH(str)			-- 字符串长度，按照字节
 select CHAR_LENGTH('')	    -- 字符串长度
-select CONCAT('你','好')	   -- 拼接字符串
+select CONCAT('你'[,'好'...])	   -- 拼接字符串
 select replace(字符串,'要换的值','想换的值')	-- 替换字符串
+select SUBSTRING(str,开始位置,要取的长度)	 -- 截取字符串,开始位置从 1 计算
+select trim(str)			-- 去掉前边和后边的空格
 ~~~
 
-> 时间日期（记住）
+> *时间日期（记住）
 
 ~~~sql
 select current_date()			-- 获取当前日期
 select curdate()				-- 获取当前日期。上面同义词
-select now()					-- 获取当前的时间(有时分秒)
+select current_time()			-- 获取当前时间
+select current_timestamp()		-- 当前时间戳(有年月日时分秒)
+select now()					-- 获取当前的时间(有年月日时分秒)
 select localtime()				-- 本地时间
 select sysdate()				-- 系统时间
 select year(now())				-- 年
 select minute(now())			-- 分钟
+
+select date_add(date2,interval 时间time 年|月|日|时|分|秒) -- date2 + 时间time 单位
+select date_sub(date2,interval 时间time 年|月|日|时|分|秒) -- date2 - 时间time 单位
+select datediff(dite1,date2)	-- 两个日期差(结果为天)
+select timediff(date1,date2)	-- 两个时间差(多少小时多少分钟多少秒)
+
+select unix_timestamp()				-- 返回1970-1-1 到现在的秒数
+select from_unixtime(unix_timestamp(),'%Y-%m-%d %H:%i:%s') -- 将unix_timestamp 秒数，转成指定格式的日期
 ~~~
 
 > 系统 
@@ -507,17 +676,53 @@ select count(1) from `表名`		 -- 不会忽略null值，本质计算行数
 
 ~~~sql
 select sum(列名) from `表名`
-select avg(列名) from `表名`
-select max(列名) from `表名`
+select avg(列名) from `表名`	-- 会忽略所有的null值
+select max(列名) from `表名`	
 select min(列名) from `表名`
 ~~~
 
-#### MD5 加密
+####  加密
 
 ~~~sql
+md5(str);		-- md5加密
 update `表名` set `列名` = md5(`列名`) where 条件;
 select * from `表名` where `列名` = md5(加密的值);
+
+password(str)	-- mysql数据库默认的用户密码
 ~~~
+
+#### 流程控制函数
+
+~~~sql
+if(expr1,expr2,expr3)	-- 如果expr1 为 True，则返回 expr2否则返回 expr3
+ifnull(expr1，expr2)		-- 如果expr1不为空，则返回 expr1，否则返回expr2
+
+select case 					-- 类似多重分支
+		when expr1 then expr2
+		when expr3 then expr4
+		else expr5 end;
+-- 举例：
+select ename ,(select case 
+              	when job = 'clerk' then '职员'
+              	when job = 'manager' then '经理'
+              	else job end)
+		from emp;
+~~~
+
+
+
+## 函数(存储过程)
+
+~~~sql
+delimiter $$ -- 写函数之前必须写。
+create function 名字()
+begin
+	-- sql 语句
+end;
+delimiter
+~~~
+
+
 
 ## 事务
 
@@ -547,21 +752,65 @@ select * from `表名` where `列名` = md5(加密的值);
 
 事务一旦提交则不可逆，被持久化到数据库中
 
-> 一些问题
+
+
+
+
+**一些问题：**
 
 **脏读：**
 
 指一个事务读取了另外一个事务未提交的数据
 
- **不可重复读：**
+ **不可重复读：**		针对 **更新** 操作
 
 在一个事务内读取表中的某一行数据，多次读取结果不同(不一定是错误的)
 
-**虚读(幻读)**
+**虚读(幻读)	**		   针对 **插入和删除** 操作 
 
 指一个事务内读取到了别的事务插入的数据，导致前后读取不一致(数据变多了)
 
-#### 执行事务
+
+
+#### 事务隔离级别
+
+Mysql 隔离级别定义了 **事务与事务之间的隔离程度**
+
+​						隔离级别		 		       脏读    不可重复读    幻读    加锁读
+
+读未提交（Read uncommitted）		√		     	√		        √			不加锁
+
+读已提交（Read committed）			 ×		     	√				√			不加锁
+
+可重复读（Repeatable read）			 ×                 ×				 ×			不加锁
+
+可串行化（Serializable）					  ×                 ×		   	  ×		     加锁（发现有个事务在操作没提交，会卡住）
+
+ **查看隔离级别**
+
+~~~sql
+select @@tx_isolation;			-- 查看当前 会话 隔离级别	mysql5.7
+select @@global.tx_isolation;	-- 查看当前 系统 隔离级别
+
+select @@transaction_isolation;	-- mysql 8
+~~~
+
+**设置隔离级别**
+
+mysql 默认事务隔离级别是  **可重复读（Repeatable read）**   如无必要，不用修改
+
+~~~sql
+set session transaction isolation level 隔离级别;	-- 设置当前 会话 隔离级别
+set global transaction isolation level 隔离级别;	-- 设置当前 系统 隔离级别
+-- 举例： 设置当前 会话 隔离级别为 读已提交（Read committed）
+set session transaction isolation level Read committed;
+~~~
+
+
+
+#### 	执行事务
+
+> mysql 使用事务需要使用 InnoDB存储引擎，Myisam不支持
 
 ~~~sql
 -- mysql 是默认开启事务自动提交的
@@ -640,7 +889,7 @@ key `索引名字`(索引的列名);
 
 ~~~sql
 -- 方法一：
-alter table 表名 add [什么索引] index `索引名`(`要建立索引的列名`);
+alter table 表名 add [什么类型的索引] index `索引名`(`要建立索引的列名`);
 -- 方法二 ：
 create 索引类型 index `索引名` on `表`(`列名`)
 ~~~
@@ -654,6 +903,8 @@ explain sql语句;
 
 ~~~sql
 drop index `索引名` on `表名`;
+-- 删除主键索引
+alter table `表名` drop primary key;
 ~~~
 
 #### 索引原则
@@ -662,19 +913,6 @@ drop index `索引名` on `表名`;
 - **不对**经常变动的数据加索引
 - 小数据量的表不需要加索引
 - 索引一般加载常用来查询的字段上
-
-
-
-## 函数(存储过程)
-
-~~~sql
-delimiter $$ -- 写函数之前必须写。
-create function 名字()
-begin
-	-- sql 语句
-end;
-delimiter
-~~~
 
 ## 用户
 
@@ -730,25 +968,28 @@ show grants for root@主机;		-- 查看root权限的时候要带着主机
 
 ## 备份
 
-> 备份的目的
+备份的目的
 
 - 保证重要的数据不丢失
 - 数据转移
 
-> 备份的方式
+备份的方式
 
 - 直接拷贝物理文件
 - 在可视化工具中手动导出
 - 命令行导出 mysqldump
 
-> 命令行
+**命令行**
 
 ~~~ini
-# mysqldump -h主机 -u用户名 -p密码 数据库 [表名1][表名2] > 磁盘位置/文件名
-mysqldumo -hlocalhost -uroot -p123456 数据库 [表名] > D:/a.sql
+# mysqldump [-h主机] -u用户名 -p密码 数据库 [表名1][表名2] > 磁盘位置/文件名
+# mysqldump [-h主机] -u用户名 -p密码 -B 数据库 数据库2 数据库3 > 磁盘位置/文件名
+# -B 加上则认为后面都是库名，不加则认为第一个之后的为表名
+mysqldump [-hlocalhost] -uroot -p123456 数据库 [表名] > D:/a.sql
+mysqldump [-hlocalhost] -uroot -p123456 -B 数据库 数据库2 数据库3 > D:/a.sql
 
 # 导入
-# source 备份文件 登录情况下
+# source 备份文件 在mysql命令行的登录情况下
 source d:/a.sql
 mysql -u用户名 -p密码 库名 < 备份文件
 ~~~
