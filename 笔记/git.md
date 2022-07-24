@@ -85,7 +85,7 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 
 #### 推送/拉取
 
-<font color = "red">**`git push 远程主机 本地分支:远程分支`**</font>  推送
+<font color = "red">**`git push 远程主机 远程分支:本地分支`**</font>  推送
 
 <font color = "red">**`git pull 远程主机 远程分支:本地分支`**</font>  拉取
 
