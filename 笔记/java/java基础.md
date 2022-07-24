@@ -8,7 +8,7 @@ javac -encoding UTF-8 xxx.java  # 改为
 
 ## 数据类型
 
-> Java中每一种数据都定义了明确的数据类型，在内存中分配了不同大小的内存空间
+> Java中每一种数据都定义了！明确的数据类型，在内存中分配了不同大小的内存空间
 
 ![](./images/java01.png)
 
@@ -1213,21 +1213,129 @@ enum Week{
 
 ## 正则
 
+元字符：转义符 `\`
+
+在使用正则表达式去检索某些特殊字符的时候需要使用转义符，否则检索不到结果
+
+需要用到转移符号的字符有：`. * + ( ) $ / \ ? [ ] ^ { }`
+
 相关类位于：java.util.regex包下
 
-类 Pattern:
+**类 Pattern：**
+
+Pattern对象是一个正则表达式对象，没有公共构造方法，要创建一个pattern对象，调用其公共静态方法。它返回一个Pattern对象，该方法接受一个正则表达式作为它的第一个参数
 
 + 正则表达式的编译表示形式
 
 + ~~~java
     Pattern p = Pattern.compile("正则模式");//建立正则表达式，启用相应模式
     ~~~
+    
++ 当不需要获取到匹配的内容，只是来验证时，可以使用 `matches(str,regStr)`
 
-类 Matcher:
+    ~~~java
+    String str = "123";
+    String regStr = "//d";
+    boolean isMatch = Pattern.matches(str,regStr);
+    ~~~
 
-- 通过解释 Pattern 
+**类 Matcher：**
+
+Matcher对象是对输入字符串进行解释和匹配的引擎，没有公共构造方法需要调用Pattern独享的matcher方法来获得一个Matcher对象
 
 - ~~~java
-    Matcher m = p.matcher(str);//匹配str字符串
-    m.group(数字)//按照正则模式的第几个范围匹配整个表达式的子字符串
+    // 不考虑分组的情况		即 String regStr = "//d//d//d//d";
+    String str = "1234你好啊9876"
+    Matcher m = p.matcher(str); // 匹配的str字符串
+    /** 	m.find()的作用
+    	1. 根据指定的正则规则，定位满足规则的 子 字符串（比如1234）
+    	2. 找到后，将 子字符串的开始的索引记录到 matcher 对象的属性 int[] groups 中
+    		即groups[0] = 0，将该 子 字符串的结束索引+1的值记录到 group[1] = 4
+    	3. 同时记录matcher对象的属性oldLast 的值为 子字符串 的结束的 索引+1的值。即下次
+    		m.find()开始匹配的值
+    */
+    while (m.find()) {
+        /**		m.group(0)
+        	1. 根据groups[0]  和 groups[1] 记录的位置，从str中使用subString截取 子字符串
+        		即 [0,4)
+        */
+        m.group(0);
+    }
     ~~~
+
+- ~~~java
+    // 分组的情况		即 String regStr = "(//d//d)(//d//d)";	第一个小括号是第一组，第二个是第二组
+    String str = "1234你好啊9876"
+    Matcher m = p.matcher(str); // 匹配的str字符串
+    /** 	m.find()的作用
+    	1. 根据指定的正则规则，定位满足规则的 子 字符串（比如(12)(34)）
+    	2. 找到后，将 子字符串的开始的索引记录到 matcher 对象的属性 int[] groups 中
+    			2.1 即groups[0] = 0，将该 子 字符串的结束索引+1的值记录到 group[1] = 4
+    			2.2 同时记录1组()匹配到的字符串 groups[2] = 0 groups[3] = 2
+    			2.3 同时记录2组()匹配到的字符串 groups[4] = 2 groups[5] = 4
+    			2.4 如果有更多的分组 ......
+    	3. 同时记录matcher对象的属性oldLast 的值为 子字符串 的结束的 索引+1的值。即下次
+    		m.find()开始匹配的值
+    */
+    while (m.find()) {
+        /**	group() 底层源码：根据传的分组截取源字符串
+        	getSubSequence(groups[group * 2], groups[group * 2 + 1]).toString();
+        	1.group(0)：groups[0]  和 groups[1] 记录的位置 即会返回 1234
+        	2.group(1)：groups[2]  和 groups[3] 记录的位置	即会返回 12
+        	3.group(2)：groups[4]  和 groups[5] 记录的位置 即会返回 34
+        	此例中如果使用 group(3)会报错，因为没有第三组
+        */
+        m.group(0);		// 表示匹配到的子字符串
+        m.group(1);		// 表示匹配到的子字符串的第一组
+        m.group(2);		// 表示匹配到的子字符串的
+    }
+    ~~~
+
+**使用正则**
+
+~~~java
+String str = "字符串";
+String regStr = "正则表达式";
+Pattern p = Pattern.complie(regStr);
+Matcher m = p.matcher(str);
+while(m.find()){
+    m.group(0);
+}
+~~~
+
+**不区分大小写**
+
+~~~java
+// 方式一：
+String str = "abc123ABC";	// java正则默认区分大小写
+String regStr = "(?i)abc";		// 表示 abc 都不区分大小写
+String regStr = "a(?i)bc";		// 表示 bc 不区分大小写
+String regStr = "a((?i)b)c";	// 表示只有 b 不区分大小写
+// 方式二：
+String str = "abc123ABC";
+String regStr = "abc";
+Pattern p = Pattern.complie(regStr,Pattern.CASE_INSENSITIVE);
+~~~
+
+#### 分组
+
+（pattern）**非命名捕获**	捕获匹配的子字符串。编号为零的第一个捕获是由整个正则表达式模式匹配的文本，其它捕获结果则根据左括号的顺序从1开始自动编号
+
+~~~java
+String regStr = "(\\d\\d)(\\d\\d)";
+……
+m.group(0);
+m.group(1);
+m.group(2);
+~~~
+
+（?<name>pattern）**命名捕获**（即给分组命名）将匹配的子字符串捕获到一个组名名称中（用于name的字符串不能包含任何标点符号，不能以数字开头）。可以使用单引号代替尖括号 即 （?'name'pattern）
+
+~~~java
+String regStr = "(?<a1>\\d\\d)(?<a2>\\d\\d)";
+……
+m.group(0);
+m.group("a1");		// 也可以用m.group(1);
+m.group("a2");		// 也可以用m.group(2);
+~~~
+

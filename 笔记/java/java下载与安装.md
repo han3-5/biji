@@ -24,17 +24,17 @@
 2. 新建**`CLASSPATH`**变量，值如下
 
 ~~~bash
-%JAVA_HOME%/lib;%JAVA_HOME%/jre/lib
+%JAVA_HOME%\lib;%JAVA_HOME%\jre\lib
 ~~~
 
 3. 配置**`Path`**，新建一个变量，值如下
 
 ~~~bash
-%JAVA_HOME%/bin
+%JAVA_HOME%\bin
 ~~~
 
 ~~~bash
-%JAVA_HOME%/jre/bin
+%JAVA_HOME%\jre\bin
 ~~~
 
 #### linux

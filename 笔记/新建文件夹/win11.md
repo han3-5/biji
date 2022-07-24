@@ -6,7 +6,7 @@
 计算机\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
 ~~~
 
-将`ColorPrevalence` 的数据修改为 `1` 就变成白色了。
+将`ColorPrevalence` 的数据修改为 `1` 就变成白色了。 `0` 是黑色
 
 将`SystemUsesLightTheme` 的数据修改为`0` 可以把黑色的小图标改成白色
 
@@ -26,3 +26,17 @@ Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Re
 Get-AppxPackage Microsoft.SecHealthUI -AllUsers | Reset-AppxPackage
 ~~~
 
+# 微软账号登不上
+
+可以更改dns解决，将dns更改为
+
+~~~bash
+-- 4.2.2.2 
+~~~
+
+# 透明化任务栏
+
+> 都在Microsoft Store中下载
+
+1. 使用TranslucentTB
+2. 如果任务栏出现灰色横线，在使用RoundedTB，将  **margin设置为1**

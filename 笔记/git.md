@@ -1,5 +1,18 @@
 Git是目前世界上最先进的**分布式版本控制系统**
 
+## 设置用户名和邮箱
+
+~~~bash
+# 全局设置
+git config --global user.name 用户名
+git config --global user.email 邮箱
+# 局部设置
+git config user.name 用户名
+git config user.email 邮箱
+# 如果设置的时候用户名和邮箱加了 ""	可能会出现设置不成功的问题
+# 删掉 /用户/user/.gitconfig 重新设置即可
+~~~
+
 ## 版本库与文件操作
 
 #### 初始化创建版本库
@@ -30,6 +43,10 @@ Git是目前世界上最先进的**分布式版本控制系统**
 
 <font color = "red">**`git log`**</font> 可以查看从最近到最远的提交日志（即查看版本库的状态 ）
 
+<font color = "red">**`git reflog`**</font>查看历史每一次命令，可以查看每一次提交时的**`commit id`**
+
+*git log看之前的版本。git reflog 看之后的版本(退回之前版本后想退回来)*
+
 <font color = "red">**`git diff 文件名`**</font>查看修改的内容
 
 <font color = "red">**`git diff HEAD -- 文件名 `**</font>可以查看工作区和版本库里面最新版本的区别
@@ -41,8 +58,6 @@ Git是目前世界上最先进的**分布式版本控制系统**
 <font color = "red">**`git reset --hard HEAD~100`**</font>表示回退100个版本
 
 <font color = "red">**`git reset --hard 版本号`**</font>将head指针指向那个版本号(版本号可以只写前几位)
-
-<font color = "red">**`git reflog`**</font>查看历史每一次命令，可以查看每一次提交时的**`commit id`**
 
 #### 工作区和暂存区
 
@@ -56,7 +71,7 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 
 #### 撤销修改
 
-<font color = "red">**`git checkout -- 文件名`**</font>把文件在工作区的修改全部撤销
+<font color = "red">**`git checkout -- 文件名`**</font>把文件在工作区的修改全部撤销，使用最近的commit内容（后面被git switch 和 git restore替代）
 
 <font color = "red">**`git reset HEAD 文件名`**</font>把文件在暂存区的修改撤销掉，重新放回工作区
 
@@ -76,11 +91,13 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 
 #### 添加远程库
 
-第1步：创建SSH Key。在用户主目录下，看看有没有.ssh目录，如果有，再看看这个目录下有没有**`id_rsa`**和**`id_rsa.pub`**这两个文件。创建SSH Key：
+第1步：创建SSH Key。创建SSH Key：
 
 ~~~
 ssh-keygen -t rsa -C "youremail@example.com"
 ~~~
+
+在用户主目录下，看看有没有.ssh目录，如果有，再看看这个目录下有没有**`id_rsa`**和**`id_rsa.pub`**这两个文件。
 
 然后在github上添加SSH，将**`id_rsa.pub`**内容复制进去
 
@@ -159,6 +176,8 @@ Git的标签相当于版本库的快照
 #### 忽略文件
 
 有些时候我们不想把某些文件纳入版本控制中，比如数据库文件，临时文件，设计文件等
+
+忽略的文件会忽略掉整个项目中任意一个文件夹下的同名文件
 
 在主目录下建立**` .gitignore`** 文件，有以下规则：
 

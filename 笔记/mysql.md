@@ -18,26 +18,41 @@
 
 ## 数据库引擎和编码
 
+~~~sql
+-- 查看所有的存储引擎
+show engines;
+~~~
+
 #### MYISAM和InnoDB区别
 
 InnoDB 是默认使用的
 
 myisam 是早些年使用
 
-|              | InnoDB               | myisam |
-| :----------- | -------------------- | ------ |
-| 事务支持     | 支持                 | 不支持 |
-| 数据行锁定   | 支持                 | 不支持 |
-| 外键约束     | 支持                 | 不支持 |
-| 全文索引     | 支持                 | 支持   |
-| 表空间的大小 | 较大，约为myisam 2倍 | 较小   |
+|                    | InnoDB               | myisam | Memory       |
+| :----------------- | -------------------- | ------ | ------------ |
+| 访问、添加数据速度 |                      | 快     | 快           |
+| 事务支持           | 支持                 | 不支持 | 不支持       |
+| 数据行锁定         | 支持                 | 不支持 | 不支持       |
+| 外键约束           | 支持                 | 不支持 | 不支持       |
+| 全文索引           | 不支持               | 支持   | 不支持       |
+| 表空间的大小       | 较大，约为myisam 2倍 | 较小   | **在内存中** |
 
 InooDB 在5.7之前版本重启数据库自增量会从 1 开始(因为存在在内存中)。
+
+Memory的数据都在内存中，关机或者mysql重启，数据会丢失表结构还在
 
 **常规使用操作**
 
 - myisam 	节约空间，速度较快
 - InnoDB      安全性高，事务的处理，多表多用户操作
+- Memory     用户的在线状态 
+
+**修改存储引擎**
+
+~~~sql
+alter table '表' engine = innodb;
+~~~
 
 #### 字符集编码
 
@@ -63,10 +78,10 @@ utf8_general_ci：不区分大小写
 
 > sc delete mysql	清空服务;     在安装出现意外时使用
 
-- 官网下载 [MySQL](https://www.mysql.com/)   （最好下载压缩包，自己配置。     '.exe'不好卸载）
+- 官网下载 [MySQL](https://www.mysql.com/)   （在网页最下面找）（最好下载压缩包，自己配置。     '.exe'不好卸载）
 - 解压
 - 配置环境变量
-- 在mysql目录下新建mysql配置文件my.ini文件
+- 在mysql目录下新建mysql配置文件my.ini文件（如果都面出现登不进去，打开任务管理器，点开服务，找到mysql，手动点击启动，如果这个时候发现启动一下马上变成已停止。就把my.ini移动到/bin目录下，清空服务，在来一遍）
 
 ~~~mysql
 [client]
@@ -75,12 +90,14 @@ port=3306
 [mysqld]
 # 路径后面加上"\",路径为自己 mysql 的安装目录
 basedir=路径\
-datadir=路径\data\		   # 不要自己新建data，自动生成
-port=3306					# 端口
-ship-grant-tables			# 用来跳过密码验证，配置完删掉
+# 不要自己新建data，自动生成
+datadir=路径\data\
+port=3306
+# 用来跳过密码验证，配置完可以删掉
+ship-grant-tables
 ~~~
 
-- 启动**管理员模式**下的CMD，并将路径切换到mysql下的**bin目录**，然后输入**`mysqld -install`** (安装mysql)
+- 启动**管理员模式**下的CMD，并将路径切换到mysql下的 ==**bin目录**==，然后输入**`mysqld -install`** (安装mysql)
 - 输入**`mysqld --initialize-insecure --user=mysql`** 初始化数据文件
 - 输入 **`net start mysql`** 启动mysql
 - 输入**`mysql -u root -p`** 进入到mysql管理界面 -p后面不加东西空格也不要，直接回车
@@ -88,6 +105,11 @@ ship-grant-tables			# 用来跳过密码验证，配置完删掉
 
 ~~~mysql
 update mysql.user set authentication_string=password('123456') where user='root' and Host='localhost';
+~~~
+
+~~~sql
+-- mysql8 版本上面语句可能报错，使用如下语句修改root密码：
+alter user 'root'@localhost identified by '123456';
 ~~~
 
 - 输入**` flush privileges;`**刷新权限
@@ -914,52 +936,95 @@ alter table `表名` drop primary key;
 - 小数据量的表不需要加索引
 - 索引一般加载常用来查询的字段上
 
+## 视图
+
+> 视图是一个虚拟表，内容由查询定义，数据来自对应的真实表(视图在保存的只有一个结构)
+
+通过视图可以修改基表的数据，基表的变化也会影响到视图的数据
+
+视图中还可以在使用视图，查询一个视图的结果作为新视图
+
+~~~sql
+-- 创建视图
+create view 视图名 as select语句;
+-- 更新视图
+alter view 视图名 as select语句;
+-- 删除视图
+drop view 视图名1,视图名2;
+~~~
+
+**视图实践**
+
+1. 安全：有些数据表的字段是保密的，不想被直接看到，可以使用视图只查询非保密的字段
+2. 性能：关系数据库的数据常常会分表存储，在查询时会使用 join连接，使用视图可以避免 join
+
 ## 用户
 
-创建用户
+mysql中的用户都存储在mysql库的user表中
+
+~~~sql
+select * from mysql.user;
+~~~
+
+user表的重要字段说明：
+
+1. host：允许登录的地址，也可以使用ip地址
+2. user：用户名
+3. authentication_string：密码，是通过mysql 的password()函数加密之后的密码
+
+**创建用户**
 
 ~~~sql
 -- '用户名'@'哪个主机'	% 意味着谁都能连
-create user 用户名 identified by '密码';
 create user '用户名'@'%' identified by '密码';
 ~~~
 
-删除用户
+**删除用户**
 
 ~~~sql
-drop user 用户名;
+drop user '用户名'@'主机地址';
 ~~~
 
-修改密码
+**修改密码**
 
 ~~~sql
 -- 指定修改用户的密码
-alter user 用户名 identified by '密码';
-alter user 'root'@主机	identified by '密码';		-- 修改root密码
+alter user '用户名'@'主机地址' identified by '密码';
+alter user 'root'@'主机'	identified by '密码';		-- 修改root密码
 ~~~
 
-重命名
+**重命名**
 
 ~~~sql
 rename user 旧用户名 to 新用户名;
 ~~~
 
-用户授权
+**用户授权**
 
 ~~~sql
+-- 基本语法
+grant 权限 on 库名.表名 to '用户名'@'主机地址' [identified by '密码'];
+-- identified by 可以省略，也可以写出	
+-- 写出：用户存在就是修改密码，用户不存在就是创建该用户
+
 -- grant 授予的意思
+-- 多个权限用逗号分开
 -- all privileges 全部的权限(比root低) 因为 grant权限依旧为 N
--- *.* 代表  库名.表名
-grant all privileges on *.* from 用户名;
+grant select,update,delete..... on .....;
+grant all privileges on 库名.表名 to '用户名'@'主机地址';
 ~~~
 
-撤销权限
+**撤销权限**
 
 ~~~sql
-revoke all privileges on *.* to 用户名;
+-- 基本语法
+revoke 权限 on 库名.表名 from '用户名'@'主机地址';
+revoke all privileges on 库名.表名 from '用户名'@'主机地址';
+-- 权限如果没有生效，需要刷新权限(低版本)
+flush privileges;
 ~~~
 
-查询权限
+**查询权限**
 
 ~~~sql
 show grants for 用户名;
