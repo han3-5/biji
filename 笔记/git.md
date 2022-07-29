@@ -91,7 +91,15 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 
 #### 添加远程库
 
-第1步：创建SSH Key。创建SSH Key：
+**HTTPS**
+
+关联远程仓库，在第一次push的时候会弹出账号密码，填写即可。
+
+如果之后更改了gitee(github)密码 ，需要在windows控制面板搜索凭据中的 `windows凭据`中更新
+
+**SSH**
+
+第1步：创建SSH Key。创建SSH Key(三次回车)：
 
 ~~~
 ssh-keygen -t rsa -C "youremail@example.com"
@@ -112,6 +120,18 @@ ssh-keygen -t rsa -C "youremail@example.com"
 #### 克隆远程库
 
 <font color = "red">**`git clone 地址`**</font> 将远程库克隆下来
+
+## 远程提交
+
+好友：
+
+1. 对项目进行 `fork` (fork相当于将此项目拷贝到自己仓库)
+2. 进行开发…………
+3. 在gitee上使用 pull request 创建一个远程提交
+
+作者：
+
+1. 查看 pull request，审查、测试、通过、合并……
 
 ## 分支管理
 
@@ -155,7 +175,7 @@ Git 中的分支,其实本质上仅仅是个指向 commit 对象的可变指针�
 
 ## 标签管理
 
-Git的标签相当于版本库的快照
+>  Git的标签相当于版本库的快照，标签不能合并
 
 #### 创建标签
 

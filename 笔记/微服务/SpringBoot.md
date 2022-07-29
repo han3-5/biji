@@ -1082,12 +1082,32 @@ public interface UserMapper {
 logging.level.com.zyh.mapper=trace
 ~~~
 
-## springboot 默认日志
+## 热部署
+
+1. 添加依赖
+
+   ~~~xml
+   <dependency>
+       	<groupId>org.springframework.boot</groupId>
+       	<artifactId>spring-boot-devtools</artifactId>
+       	<optional>true</optional>
+   </dependency>
+   ~~~
+
+   
+
+2. 在设置中找到`Compiler` 勾选上 `Build project automatically`
+
+3. 按住 `ctrl+Alt+shift+/` 选择 `Registry` 勾选上`compiler.automake.allow.when.app.running`
+
+## springboot 日志
+
+####  默认日志
 
 ~~~java
 //   SLF4J日志记录器 
 // @Slf4j 或者在类上使用注解
-private static Logger log = LoggerFactory.getLogger(SpringBootStudyApplicationTests.class);
+private static Logger log = 	LoggerFactory.getLogger(SpringBootStudyApplicationTests.class);
 ~~~
 
 **修改日志的默认输出级别**

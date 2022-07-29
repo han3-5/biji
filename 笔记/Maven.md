@@ -42,7 +42,7 @@
 
 ~~~bash
 # 放在<localRepository></localRepository>标签中
-<localRepository>D:\Environment\apache-maven-3.8.4\maven-repo</localRepository>
+<localRepository>D:\Environment\apache-maven-3.8.6\maven-repo</localRepository>
 ~~~
 
 ## idea中使用Maven
@@ -76,8 +76,8 @@
     <!--项目的默认构建编码-->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!--编码的版本-->
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <!--项目依赖-->
@@ -91,8 +91,75 @@
   </dependencies>
   <!--项目构建用的东西-->
   <build>
+      <!--更改打的jar包名字为xxx-->
+      <finalName>xxx</finalName>
   </build>
 </project>
+~~~
+
+## Maven的常见命令
+
+~~~java
+clean			// 对项目清理，删除target目录下编译的内容
+compile	     // 编译项目
+test			// 对项目进行测试
+package		// 打包文件并存放到项目的target目录下，打包好的文件通常是class文件
+install			// 在本地仓库生成仓库的安装包，可供其他项目引用，同时打包后的文件放在项目的target目录下
+~~~
+
+## Maven 父子工程
+
+~~~xml
+<!--依赖中所有的jar包都会被子工程加载，无论使用与否，会造成空间过大，除非都需要-->
+<dependencies>
+    <!--具体依赖的jar包配置-->
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+    </dependency>
+</dependencies>
+~~~
+
+~~~xml
+<!--会管理依赖中的jar包，子工程需要会加载不需要不加载，父工程只管理不下载！！！-->
+<dependencyManagement>
+    <dependencies>
+        <!--具体依赖的jar包配置-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+~~~
+
+## Maven jar包
+
+更改jar包名称
+
+~~~xml
+<build>
+    <!--更改打的jar包名字为xxx-->
+    <finalName>xxx</finalName>
+</build>
+~~~
+
+**将发过来的jar包手动配置到项目中**
+
+~~~bash
+mvn install:install-file -Dfile="jar包地址\xxx.jar" -DgroupId=com.zhang -DartifactId=test-jar -Dversion=1.0.1 -Dpackaging=jar
+~~~
+
+对应的引入：
+
+~~~xml
+<dependency>
+    <groupId>com.zhang</groupId>
+    <artifactId>test</artifactId>
+    <version>1.0.1</version>
+</dependency>
 ~~~
 
 ## Maven 项目资源导出问题
@@ -127,4 +194,3 @@ maven由于他的约定大于配置，我们之后可以能遇到我们写的配
 ## Maven仓库
 
 仓库地址 [Maven Repository: Search/Browse/Explore (mvnrepository.com)](https://mvnrepository.com/)
-
