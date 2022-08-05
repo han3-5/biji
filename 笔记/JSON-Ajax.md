@@ -84,6 +84,45 @@ function a1(){
 用户名:<input type="text" id="txtName" onblur="a1()"/>
 ~~~
 
+#### from表单数据提交
+
+~~~js
+function a1(){
+    $.ajax({
+        url:"${pageContext.request.contextPath}/a1",
+        data:$("#form-change-avatar").serialize(),
+        success:function (data,status) {
+            alert(data);
+            alert(status);
+        }
+    });
+}
+~~~
+
+- serialize():可以将表单数据自动拼接成key=value的结构进行提交给服务器
+- FormData类：将表单中数据保持原有的结构进行数据的提交 
+
+~~~js
+new FormData($("#form")[0]);	// 文件类型的数据可以使用FormData对象进行存储
+~~~
+
+- ajax默认处理数据时按照字符串的形式进行处理，以及默认会采用字符串的形式进行数据提交。关闭这两个默认功能
+
+~~~js
+function a1(){
+    $.ajax({
+        url:"${pageContext.request.contextPath}/a1",
+        data:new FormData($("#form-change-avatar")[0]),
+        processData:false,// 处理数据的形式，关闭处理数据
+        contentType:false,// 提交数据的形式，关闭默认提交数据的形式
+        success:function (data,status) {
+            alert(data);
+            alert(status);
+        }
+    });
+}
+~~~
+
 #### url小问题
 
 ~~~java

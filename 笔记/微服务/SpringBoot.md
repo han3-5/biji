@@ -1023,6 +1023,15 @@ public interface UserMapper {
 </mapper>
 ~~~
 
+~~~xml
+<!--useGeneratedKeys：表示开启某个字段的值递增
+        keyProperty：标签将表中的哪个字段作为主键进行递增-->
+<insert id="addUser" parameterType="pojo.User"  useGeneratedKeys="true" keyProperty="id">
+    insert into user (id, name, password)
+    values (#{id},#{name},#{password});
+</insert>
+~~~
+
 4. application.properties 配置文件
 
 > mybatis-plus 不用配置。或者将文件放在mapper接口同一个文件内（但会遇到maven导入静态资源的问题，需要在pom.xml中配置一下）
@@ -1102,29 +1111,69 @@ logging.level.com.zyh.mapper=trace
 
 ## springboot 日志
 
-####  默认日志
+可以设置为 `trace` `debug` `info` `warn` `error` `fatal`或`off` 
+
+如果设置为了 info，则warn,error,fatal或off 可以输出，trace,debug不输出
+
+**输出日志**
+
+1. 正常输出
 
 ~~~java
-//   SLF4J日志记录器 
-// @Slf4j 或者在类上使用注解
-private static Logger log = 	LoggerFactory.getLogger(SpringBootStudyApplicationTests.class);
+// 1. 声明日志记录器
+public class XXX{
+    Logger logger = LoggerFactory.getLogger(Application.class);
+    logger.trace("跟踪");
+    logger.debug("调试");
+    logger.info("信息");
+    logger.warn("警告");
+    logger.error("异常");
+}
 ~~~
 
-**修改日志的默认输出级别**
+2. 使用注解
+
+~~~java
+@Slf4j	// Lombok 依赖
+public class XXX{
+    logger.trace("跟踪");
+    ……
+    logger.error("异常");
+}
+~~~
+
+#### 日志格式
+
+[Common Application Properties (spring.io)](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#application-properties.core.logging.pattern.console)
+
+从左至右：
+
+~~~yaml
+%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}
+~~~
+
+%clr  当前内容的颜色 {faint} 	faint代表无色
+
+- 时间：日期和时间：毫秒精度
+- 日志级别
+- 进程ID
+- "---"区分消息
+- 线程名称
+- 记录类名称：通常是源类名称
+- 日志消息
+
+**修改日志设置**
 
 ~~~properties
-# 这句代码的意思是将com.zyh.mapper包下的所有类的日志级别都设置为trace级别
-logging.level.com.zyh.mapper=trace
-
-
 #指定某个包下的日志级别
 logging.level.com.staticzz=trace
 #指定log文件名
 #logging.file=SpringBoot.log
 #指定log输出路径,如果不指定,默认输出到控制台
-logging.path=C:/Users/socra
-#指定控制台输出格式
-#logging.pattern.console=
+logging.path=D:/test/test12					   不可以指定log文件的名称
+# logging.name=D:/test/test12/xx.log	可以指定log文件的名称
+#指定控制台输出格式 此处是默认的设置 也只有默认的logback支持
+logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}
 #指定文件输出格式
 logging.pattern.file=%d{-yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-51level %logger{50} - %msg%n
 ~~~
