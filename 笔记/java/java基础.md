@@ -800,6 +800,17 @@ while (iterator2.hasNext()) {       // 迭代器
 }
 ~~~
 
+####  TreeSet排序
+
+~~~java
+TreeSet<Person> ts = new TreeSet<>(new Comparator<Person>() {
+    @Override
+    public int compare(Person o1, Person o2) {
+        return o1.getAge() - o2.getAge();
+    }
+});
+~~~
+
 #### Collections工具类
 
 > 提供了对Set、List、Map进行排序、填充、查找元素的辅助方法
@@ -1235,7 +1246,7 @@ Pattern对象是一个正则表达式对象，没有公共构造方法，要创�
 
     ~~~java
     String str = "123";
-    String regStr = "//d";
+    String regStr = "\\d";
     boolean isMatch = Pattern.matches(str,regStr);
     ~~~
 

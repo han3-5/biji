@@ -146,7 +146,7 @@ void testUpdate(){
 
 所有的sql都是自动动态设置的
 
-**自动填充**
+#### 自动填充
 
 - 方式一：数据库级别（不建议使用，低版本只能一个表设置一个）
 
@@ -163,7 +163,7 @@ private LocalDateTime createTime;
 private LocalDateTime updateTime;
 ~~~
 
-2. 编写处理类 需要继承 MetaObjectHandler 
+2. 编写处理类 需要继承 MetaObjectHandler --第一种方式
 
 ```java
 @Component
@@ -179,6 +179,23 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     }
 }
 ```
+
+2. 编写处理类 需要继承 MetaObjectHandler  -- 第二种方式
+
+~~~java
+@Component
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        metaObject.setValue("createTime",LocalDateTime.now());
+        metaObject.setValue("updateTime",LocalDateTime.now());
+    }
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        metaObject.setValue("updateTime",LocalDateTime.now());
+    }
+}
+~~~
 
 #### 乐观锁
 

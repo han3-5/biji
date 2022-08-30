@@ -49,9 +49,9 @@ mkdir()//创建目录,需要保证父目录存在，不然会失败
 mkdirs()//创建目录，如果父目录不存在，会将父目录一起创建
     
 list()//下级名称返回是一个String类型数组，只是名字
-    String[] list = 路径.list();
+    String[] list = file.list();
 listFiles()//下级File对象，返回一个File类的引用，具有类的所有属性和方法
-    File[] list = 路径.listFiles();
+    File[] list = file.listFiles();
 listRoots()//根路径（会输出所有盘符）
 ~~~
 
@@ -152,7 +152,9 @@ new BufferedInputStream(InputStream in);
 new BufferedInputStream(InputStream in, int size);
 ~~~
 
-
+~~~java
+BufferedInputStream in = new BufferedInputStream(new FileInputStream(path));
+~~~
 
 #### ObjectInputStream
 
@@ -167,7 +169,7 @@ new ObjectInputStream();
 ~~~
 
 ~~~java
-String path = "../hjstudy/src/testObject";
+String path = "src/testObject";
 ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(path));
 System.out.println(objectInputStream.readInt());
 System.out.println(objectInputStream.readBoolean());
@@ -225,7 +227,9 @@ new BufferedOutputStream(OutputStream out);
 new BufferedOutputStream(OutputStream out, int size);
 ~~~
 
-
+~~~java
+BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path));
+~~~
 
 #### ObjectOutputStream
 

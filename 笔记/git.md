@@ -183,6 +183,8 @@ Git 中的分支,其实本质上仅仅是个指向 commit 对象的可变指针�
 
 <font color = "red">**`git tag 标签名`**</font> 创建标签 
 
+<font color = "red">**`git tag 标签名 -m "说明"`**</font>  创建标签并加上说明
+
 #### 操作标签
 
 <font color = "red">**`git tag -d 标签名`**</font>  删除标签
