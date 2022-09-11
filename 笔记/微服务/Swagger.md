@@ -78,6 +78,74 @@ spring.mvc.pathmatch.matching-strategy=ant_path_matcher
 
 3. 测试  http://localhost:8080/swagger-ui/index.html
 
+#### 使用knife4j
+
+> knife4j 是为java mvc框架继承Swagger生成Api文档的增强解决方案
+
+1. 导入依赖
+
+~~~xml
+<dependency>
+    <groupId>com.github.xiaoymin</groupId>
+    <artifactId>knife4j-spring-boot-starter</artifactId>
+    <version>3.0.2</version>
+</dependency>
+~~~
+
+2. 导入knif4j相关配置类
+
+~~~java
+@Configuration
+public class SwaggerConfig {
+    // 配置了 Swagger 的Docket 的bean实例
+    @Bean
+    public Docket docket(){
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.zyh.reggie.controller"))
+                // .paths()     过滤什么路径
+                .paths(PathSelectors.ant("/**"))
+                .build();
+        // RequestHandlerSelectors 配置要扫描接口的方式
+        // basePackage()  指定要扫描的包
+        // any()            扫描全部
+    }
+    // 配置Swagger信息 = apiInfo
+    private ApiInfo apiInfo(){
+        // 作者信息
+        Contact contact = new Contact("", "", "");
+        return new ApiInfo(
+                "你好呀",
+                "Api Documentation",
+                "1.0",
+                "urn:tos",
+                contact,
+                "Apache 2.0",
+                "http://www.apache.org/licenses/LICENSE-2.0",
+                new ArrayList()
+        );
+    }
+}
+~~~
+
+3. 设置静态资源，否则接口文档页面无法访问
+
+~~~java
+// 设置静态资源映射
+@Override
+protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+    registry.addResourceHandler("doc.html").addResourceLocations("classpath:/META-INF/resources/");
+    registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+}
+~~~
+
+4. 在LoginCheckFilter中设置不需要处理的请求路径
+
+~~~java
+// 就是配置Filter 来放行，不设置也没关系，就是可能需要登录一下
+~~~
+
 ## 配置
 
 **Swagger的bean实例 Docket**
@@ -141,7 +209,7 @@ public Docket docket(){
         // none()           全部不扫描
         // withClassAnnotation(Mapping.class) 扫描类上的注解
         // withMethodAnnotation(Bean.class)   扫描方法上的注解
-        .apis(RequestHandlerSelectors.basePackage("com.example.springbootswagger.swagger.controller"))
+       .apis(RequestHandlerSelectors.basePackage("com.example.springbootswagger.swagger.controller"))// 扫描的包路径
         // .paths()     过滤什么路径
         .paths(PathSelectors.ant("/**"))
         .build();
@@ -248,7 +316,7 @@ public Docket docket2(){return new Docket(DocumentationType.SWAGGER_2).groupName
 public Docket docket3(){return new Docket(DocumentationType.SWAGGER_2).groupName("C");}
 ~~~
 
-#### 注释
+#### 注解
 
 @Api 都是为了加注释
 
@@ -256,24 +324,34 @@ public Docket docket3(){return new Docket(DocumentationType.SWAGGER_2).groupName
 >
 > @ApiModel("xxxPOJO说明")
 >
+> @ApiModelProperty("xxxPOJO类属性的说明")
+>
 > @ApiOperation("xxx接口说明") 			  给方法加注释
 >
 > @ApiParam("xxxx参数说明")					给参数加注释
+>
+> @ApiImplicitParams({})						用在请求方法上，表示一组参数说明
+>
+> @ApiImplicitParam							  用在@ApiImplicitParams注解中，指定一个请求参数的各个方面
 
 ~~~java
 @Api(tags = "测试一下")
-@Controller
+@RestController
 public class HelloController {
-    @ApiOperation("n你好")
-    @ResponseBody
     @GetMapping("/hello")
-    public String hello(){
+    @ApiOperation("n你好")
+    public String hello(@ApiParam("名字") String username){
         return "hello";
     }
-    @ResponseBody
-    @GetMapping("/hello1")
-    public String hello1(@ApiParam("名字") String username){
-        return "hello";
+    @GetMapping("/page")
+    @ApiImplicitParams({
+        // required 是否是必须的
+            @ApiImplicitParam(name = "page",value = "页码",required = true),
+            @ApiImplicitParam(name = "pageSize",value = "每页记录数",required = true),
+            @ApiImplicitParam(name = "name",value = "名称",required = false),
+    })
+    public R<Page> page(int page,int pageSize,String name){
+        // 代码...
     }
 }
 ~~~

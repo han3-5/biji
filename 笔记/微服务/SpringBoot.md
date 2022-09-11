@@ -1178,3 +1178,55 @@ logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SS
 logging.pattern.file=%d{-yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-51level %logger{50} - %msg%n
 ~~~
 
+## 配置读写分离
+
+1. 导入依赖
+
+~~~xml
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+    <version>4.0.0-RC1</version>
+</dependency>
+~~~
+
+2. 在配置文件中配置读写分离规则
+
+~~~yaml
+spring:
+  shardingsphere:
+    datasource:
+      names:
+      	# 和下方数据源名称对应
+        master,slave
+      # 主数据源
+      master:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://192.168.138.100:3306/rw?characterEncoding=utf-8
+        username: root
+        password: root
+      # 从数据源
+      slave:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://192.168.138.101:3306/rw?characterEncoding=utf-8
+        username: root
+        password: root
+    masterslave:
+      # 读写分离配置
+      load-balance-algorithm-type: round_robin #轮询
+      # 最终的数据源名称
+      name: dataSource
+      # 主库数据源名称
+      master-data-source-name: master
+      # 从库数据源名称列表，多个逗号分隔
+      slave-data-source-names: slave
+    props:
+      sql:
+        show: true #开启SQL显示，默认false
+  # 因为有多个数据源，需要配置 允许定义并覆盖。不配置会
+  main:
+    allow-bean-definition-overriding: true
+~~~
+

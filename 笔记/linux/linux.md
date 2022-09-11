@@ -172,6 +172,12 @@ mv 文件名 文件名2
 
 > make  会扫描 Makefile 找到目标及其依赖
 
+nohup：用于不挂断的运行指定命令，退出中断不影响程序的运行
+
+> nohup 命令 [参数] &	& 让命令在后台运行
+>
+> 例如 nohup java -jar xxx.jar & > hello.log &
+
 ## 环境变量
 
 #### 查看环境变量
@@ -470,11 +476,6 @@ pstree -pu
 
 **常用：** ps -aux | grep mysql
 
-~~~bash
-# 后台运行
-nohup java -jar halo-1.5.0.jar &
-~~~
-
 #### 结束进程
 
 kill -9 进程的id
@@ -505,8 +506,7 @@ rpm -e --nodeps jdk查到的jdk版本		 # 卸载
 # 先查看jdk的路径 在 /usr/java/jdkxxxx
 # 在 /etc/profile 文件里添加：
 JAVA_HOME=/usr/java/jdk1.8.0_321-amd64
-CLASSPATH=%JAVA_HOME%/lib:%JAVA_HOME%/jre/lib
-export  CLASSPATH JAVA_HOME
+PATH=${JAVA_HOME}/bin:$PATH
 ~~~
 
 ~~~bash

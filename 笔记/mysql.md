@@ -1005,7 +1005,7 @@ rename user 旧用户名 to 新用户名;
 -- 基本语法
 grant 权限 on 库名.表名 to '用户名'@'主机地址' [identified by '密码'];
 -- identified by 可以省略，也可以写出	
--- 写出：用户存在就是修改密码，用户不存在就是创建该用户
+-- 写出：用户存在就是修改密码，用户不存在就是创建该用户,如果不行就先创建用户在授权
 
 -- grant 授予的意思
 -- 多个权限用逗号分开
@@ -1086,3 +1086,73 @@ mysql -u用户名 -p密码 库名 < 备份文件
 关联查询的表最好不超过三张表 
 
 若要完全遵守范式，一张表甚至要拆成很多张表，那样需要做多表联合查询会有性能问题
+
+## 主从复制
+
+Mysql主从复制是一个异步的复制过程，底层是基于mysql数据库自带的**二进制日志**功能。就是一台或多台mysql数据库（slave 即从库）从另一台mysql数据库（master 即主库）进行日志的复制然后再解析日志并应用到自身，最终实现从库的数据和主库的数据保持一致
+
+**主从复制的过程**
+
+1. master将改变记录到二进制日志（binary log）
+2. slave将master的binary log拷贝到它的中继日志（relay log）
+3. slave重做中继日志中的事件，将改变应用到自己的数据库中
+
+#### 配置
+
+> 此处是mysql5.0的配置，8.0的mysql命令有些许区别，需要百度一下
+
+**主库master**
+
+1. 修改mysql数据库的配置文件`/etc/my.cnf` （windows是 my.ini）
+
+~~~bash
+[mysqld]
+log-bin=mysql-bin	# 启用二进制日志
+server-id=100			# 服务器唯一ID
+~~~
+
+2. 重启mysql服务
+
+~~~shell
+systemctl restart mysqld
+~~~
+
+3. 登录mysql数据库，创建一个用户
+
+~~~mysql
+grant replication slave on *.* to '用户名'@'主机地址' identified by '密码';
+~~~
+
+4. 登录mysql数据库，执行下面sql，记录下File和Position的值
+
+~~~mysql
+show master status;
+~~~
+
+**从库slave**
+
+1. 修改mysql数据库的配置文件`/etc/my.cnf` 
+
+~~~bash
+[mysqld]
+server-id=101		 	# 服务器唯一ID
+~~~
+
+2. 重启mysql服务
+
+~~~shell
+systemctl restart mysqld
+~~~
+
+3. 登录mysql数据库，执行下面sql
+
+~~~mysql
+change master to master_host='主机地址',master_user='用户名',master_password='密码',master_log_file='主库查询的File',master_log_pos=主库查询的Position的值;
+start slave;
+~~~
+
+4. 查看数据库的状态	内容会很多很乱，可以复制到文本编辑器不换行查看
+
+~~~mysql
+show slave status;
+~~~

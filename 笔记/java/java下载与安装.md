@@ -45,9 +45,7 @@
 # 先查看jdk的路径 在 /usr/java/jdkxxxx
 # 在 /etc/profile 文件里添加：
 JAVA_HOME=/usr/java/jdk1.8.0_321-amd64
-CLASSPATH=%JAVA_HOME%/lib:%JAVA_HOME%/jre/lib
-export CLASSPATH JAVA_HOME
-
+PATH=${JAVA_HOME}/bin:$PATH
 ~~~
 
 ~~~bash

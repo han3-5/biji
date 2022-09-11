@@ -1,6 +1,6 @@
 ## 导入javaScript
 
-- script标签内，写javascript代码
+- script标签内，写javascript代码 
 
 ~~~
 <script> 代码 </script>
@@ -61,6 +61,32 @@ var i = 1;		//ES6之前定义
 let i = 1;		//ES6之后的局部变量，全局变量还是使用 var
 ~~~
 
+对象的属性名赋值方式
+
+~~~js
+p.name = '123';		// 有些情况不能使用
+p['name'] = '123';		// 通用方式
+// 什么时候必须使用['属性名']的方式
+1. 变量名包含特殊字符，比如 ''-'' 空格
+p.context-type = 'text/json'	    // 报错
+p['context-type'] = 'text/json' 	// 可以使用
+console.log(p['context-type']);
+2. 变量名不确定
+var propName = 'myAge';
+var value = 18;
+p.propName = value;					// 报错
+p[propName] = value;				// 可以使用
+console.log(p[propName]);
+~~~
+
+###### let、const、var
+
+var：作用域为  **该语句所在的函数内，且存在变量提升现象(即先用后定义)**
+
+let：作用域为  **该语句所在的代码块内，不存在变量提升现象**
+
+const：不能再修改该常量的值，但如果是复杂数据类型(数组、对象)，只能浅检测
+
 #### number
 
 js不区分小数和整数
@@ -79,6 +105,12 @@ NaN===NaN //false//NaN 和任何数都不相等，包括和自己
 #### 字符串
 
 'abc'	"abc"	js也是字符串不可变
+
+**repeat()** 表示将原字符串重复n次，返回一个新字符串
+
+~~~js
+'x'.repeat(3);	// xxx
+~~~
 
 - 可以多行字符串编写
 
@@ -133,6 +165,8 @@ arr.length = 10	//給长度赋值
 
 **concat()**  将数组添加到当前数组。但不会修改数组，只会返回一个新的数组
 
+**includes(value)**  数组中是否包含给定的值
+
 **连接符 join**
 
 ~~~javascript
@@ -156,6 +190,29 @@ for(let x of arr){
     //of 遍历的value 
     // 结果 A  B  C
 }
+~~~
+
+###### filter()
+
+> 过滤数组,filter()会返回一个新数组
+
+~~~js
+var arr = [12,21,33,17,10];
+var newArr = arr.filter(function(value,index){
+    return value >= 20;
+})
+~~~
+
+###### some()
+
+> 检测数组中的元素是否满足指定条件,some()返回值是**布尔值**
+
+~~~js
+// 如果找到第一个满足条件的元素，则终止循环，不再
+var arr = [12,21,33,17,10];
+var flag = arr.some(function(value){
+    return value >= 20;
+})
 ~~~
 
 #### 对象
@@ -208,15 +265,44 @@ delete 对象名.name		//删除name属性
 对象名.hasOwnProperty('属性名')	//判断该属性名是不是自己单有的，不是继承来的
 ~~~
 
+###### defineProperty()方法
+
+> 定义对象中新属性或修改原有的属性
+
+~~~js
+// Object.defineProperty(obj,prop,descriptor)
+obj：目标对象
+propo：定义或修改的属性的名字
+descriptor：目标属性所拥有的的特性，以对象形式 {} 书写，参数说明：
+		value：设置属性的值，默认为undefined，没有则添加，存在则修改
+        writable：值是否可以重写 默认为 false
+		enumerable：目标属性是否可以被枚举，默认为false
+        configurable：目标属性是否可以被删除或是否可以再次修改属性的特性，比如writable、enumerable，默认为false
+~~~
+
+~~~js
+// 举例
+var obj = {
+    id:1,
+    name:"test"
+}
+Object.defineProperty(obj,'age',{
+    value:10
+})
+~~~
+
+
+
 #### Map
 
 >  ES6新特性
 
 ~~~javascript
-var m1 = new Map(['tom',100],['jack',20]);
+var m1 = new Map([['tom',100],['jack',20]]);
 m1.get('tom');			//通过key获取value
 m1.set('admin',123456); //新增或者修改
 m1.delete('tom');		//删除
+m1.has();		//判断该元素是否在其中
 ~~~
 
 #### Set
@@ -224,7 +310,7 @@ m1.delete('tom');		//删除
 >  ES6新特性。无需不重复的集合
 
 ~~~javascript
-var m1 = new Set(['tom'],['jack']);
+var m1 = new Set(['tom','jack']);
 set.add();		//添加
 set.detlete();	//删除
 set.has();		//判断该元素是否在其中
@@ -237,12 +323,15 @@ set.has();		//判断该元素是否在其中
 > forEach() 方式是ES5.1标准引入的
 
 ~~~javascript
-var a = ['A','B','C']
 a.forEach(function(element,index,array){
     // element: 指向当前元素的值
     // index: 指向当前索引
     // array: 指向Array对象本身
 });
+var a = ['A','B','C']
+a.forEach(function(value){
+    console.log(value);
+})
 ~~~
 
 ## 严格检查模式strict
@@ -300,6 +389,66 @@ function a(x,y,...rest){//...rest 需要放在最后
 }
 ~~~
 
+#### 函数内this指向
+
+普通函数调用 -> window
+
+构造函数调用 -> 实例对象
+
+对象方法调用 -> 该方法所属对象
+
+时间绑定方法 -> 绑定事件对象
+
+**定时器函数** -> window
+
+立即执行函数  -> window
+
+**箭头函数中没有的this指向的是定义处的this指向**
+
+~~~js
+// 对象没有作用域，所以在对象中的箭头函数this指向window
+var obj = {
+    age:18,
+    say:() => {
+        console.log(this.age);
+    }
+}
+obj.say();	// undefined
+~~~
+
+
+
+#### bind方法
+
+> 可以用来改变this指向，返回值是 **改造的原函数拷贝**
+>
+> 使用价值：如果函数不需要立即调用（比如定时器函数），但是希望改变这个函数内部的this指向，此时可以考虑使用bind方法
+
+~~~js
+fun.bind(thisArg,arg1,arg2......)
+thisArg：在fun函数运行时指定的this值
+arg1，arg2：传递的其他参数
+返回由指定的this值和初始化参数改造的原函数拷贝
+~~~
+
+~~~js
+// 使用方式
+var o = {name:'test'};
+function fn(){
+    console.log(this);
+};
+var f = fn.bind(o);		// 此时fn函数中的this就指向了 o
+f();
+// 举例
+var btn = document.querySelector('button');
+btn.onclik = function(){
+    this.disabled = true;
+    setTimeout(function(){
+        this.disabled = false;	// 定时器函数里面的this指向的是window
+    }.bind(this),2000);			 // 使用bind() 可以使定时器函数中this指向btn
+}
+~~~
+
 #### 变量的作用域
 
 在 JavaScript中，var 定义变量实际是有作用域的。
@@ -347,6 +496,15 @@ function a(){
 ~~~javascript
 var PI = 3.14;//在ES6之前，使用大写定义常量。这样不规范，常量会被随意改变
 const PI = 3.14;//在ES6之后，使用const关键字。这样就变成了只读
+~~~
+
+#### 匿名函数自调用
+
+~~~js
+// 匿名函数自调用的上一句必须加 ; 或者在匿名函数前加
+;(function(){
+    console.log("test");
+})()
 ~~~
 
 #### 方法
@@ -409,6 +567,63 @@ instanceof
 #### 闭包
 
 > 一个函数内部的局部变量被一个新函数调用
+
+~~~js
+function f1(){
+    var a = 10;
+    function f2(){
+        console.log(a)
+    }
+    return f2;
+}
+var f = f1();
+f();
+f = null;	//	让内部函数成为垃圾对象->回收闭包
+~~~
+
+两个条件：
+
+1. 函数嵌套
+2. 外部函数的局部变量被内部函数引用
+
+**作用：**
+
+- 使用函数内部的变量在函数执行完后，仍然存活在内存中（延长了局部变量的生命周期）
+- 让函数外部可以操作到函数内部的数据（变量/函数）
+
+**缺点：**		（能不用就不用或者及时释放来避免闭包的缺点）
+
+- 函数执行完后，函数内的局部变量没有释放，占用内存时间会变长
+- 容易造成内存泄露（内存被占用也不用）
+
+## Promise
+
+> Promise 是ES6引入的异步编程的新解决方案，是一个构造函数，用来封装异步操作并可与获取成功或失败的结果
+
+~~~js
+Promise 构造函数：Promise(excutor){}
+Promise.prototype.then 方法
+Promise.prototype.catch方法
+~~~
+
+~~~js
+// 实例化 Promise 对象
+const p = new Promise(function(t1,t2){
+    let data = "test";
+    t1(data);								 // t1是指的成功的	会走.then(x1,x2) function(value){......}第一个x1
+    // t2(data); 							// t2是失败			  会走.then(x1,x2) function(e){......}       第二个x2
+});
+// 调用promise对象 then 方法
+p.then(function(value){
+    console.log(value);
+},function(e){
+    console.log(e);
+})
+// catch 只是调用失败的方法
+p.catch(function(value){
+    console.log(value);
+})
+~~~
 
 ## 内部对象
 
@@ -744,6 +959,46 @@ input_text.checked = true;//赋值
         return true;
     }
 </script>
+~~~
+
+## 正则
+
+test() 正则对象方法，用于检测字符串是否符合该规则，参数是测试字符串
+
+1. 通过调用RegExp对象的构造函数创建
+
+~~~js
+var reg = new RegExp(/表达式/);
+reg,test("待测试的字符串")
+~~~
+
+2. 通过字面量创建
+
+~~~js
+var reg = /表达式/;
+reg,test("待测试的字符串")
+~~~
+
+**replace()替换**
+
+> replace() 方法可以实现替换字符串操作，用来替换的参数可以是一个字符串或一个正则表达式，返回值是一个杯替换完成的新字符串
+
+~~~js
+stringObject.replace("被替换的str","替换为str1");
+~~~
+
+~~~js
+var text = "aabbaa";
+var text = text.replace(/aa/,'xx' );	 // 此时的text 只能替换第一个，想要全部替换需要使用正则表达式中参数
+~~~
+
+- g：全局匹配 
+- i：忽略大小写
+- gi：全局匹配+忽略大小写
+
+~~~js
+var text = "aabbaa";
+var text = text.replace(/aa/g,'xx' );	// 此时就可以全局替换
 ~~~
 
 ## jQuery

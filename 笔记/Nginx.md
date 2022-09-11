@@ -16,13 +16,20 @@
 
 #### linux
 
-下载之后解压，执行**`configure`**进行自动配置，之后执行 **`make`** 来处理依赖，如果不放心，可以使用 **`make install`**
+1. 安装依赖包
 
-使用 **`whereis nginx`** 找到nginx在哪里，进入目录，进入**`sbin`** 来启动nginx
+~~~bash
+yum -y install gcc pcre-devel zlib-devel openssl openssl-devel
+~~~
+
+2. 下载之后解压，执行**`configure`**进行自动配置，之后执行 **`make`** 来处理依赖，如果不放心，可以使用 **`make install`**
 
 ~~~bash
 tar -zxvf nginx-1.20.2.tar.gz 
-./configure 	# 进入解压目录后执行
+cd nginx-1.20.2
+./configure 											 # 进入解压目录后执行配置命令 
+./configure --prefix=/usr/local/nginx	  # 指定安装路径
+make && make install						    # 编译并安装
 ~~~
 
 如果出现 ./configure: error: the HTTP gzip module requires the zlib library.
@@ -31,6 +38,8 @@ option, or install the zlib library into the system, or build the zlib library
 statically from the source with nginx by using --with-zlib=<path> option.
 
 则执行 `yum install -y zlib-devel`
+
+3. 使用 **`whereis nginx`** 找到nginx在哪里，进入目录，进入**`sbin`** 来启动nginx
 
 ## 常用命令
 
@@ -68,7 +77,7 @@ worker_connections  1024; # 支持的最大连接数
 ~~~bash
 server {
     listen       80;			# 监听端口	
-    #server_name  localhost;	
+    #server_name  localhost;	域名
     
 # 反向代理    
     location ~ /t1 {
@@ -98,11 +107,13 @@ server {
 location /img/ {
 	alias /var/www/image/;
 }
-#若按照上述配置的话，则访问/img/目录里面的文件时，ningx会自动去/var/www/image/目录找文件
+#若按照上述配置的话，则访问/img/目录里面的文件时，ningx会自动去/var/www/image/目录下找文件
+# 如 xxx/var/www/image/img/test.jpg 查找为 xxx/var/www/image/test.jpg
 location /img/ {
 	root /var/www/image;
 }
 #若按照这种配置的话，则访问/img/目录下的文件时，nginx会去/var/www/image/img/目录下找文件
+# 如 xxx/var/www/image/img/test.jpg 查找为 xxx/var/www/image/img/test.jpg
 ~~~
 
 #### 负载均衡
@@ -112,12 +123,12 @@ location /img/ {
 ~~~bash
 http{
 	upstream 名字A{
-	  # ip_hash;	# 每个请求按ip的hash结果分配，每个访客固定访问一个后端服务器，可以解决session的问题
-	  # least_conn; # 将请求分配到连接数最少的服务器上
-		server ip地址:端口 weight=5;# weight权重
-		server ip地址:端口 weigth=1;# 只有上面的五分之一
-		# 轮询（默认）
-		# fair; #根据响应访问时间，先去响应快的
+	  	 # ip_hash;	# 每个请求按ip的hash结果分配。这样做可以使每个访客固定访问一个后端服务器，可以解决session的问题
+	 	 # least_conn; # 将请求分配到连接数最少的服务器上
+		 # fair; #根据响应访问时间，先去响应快的
+         # 轮询（默认）
+         server ip地址:端口 weight=5;# weight权重
+         server ip地址:端口 weigth=1;# 只有上面的五分之一
 	}
 	server{
     listen       80;			# 监听端口	

@@ -99,15 +99,20 @@ redis会周期性的把更新的数据写入磁盘或者把修改操作写入追
 
     输入`ping` 来测试连通，返回`PONG` 则ok
 
+5. 使用windows连接linux（前提开了外网链接）
+
+~~~bash
+# 调用终端
+./redis-cli.exe -h 192.168.xxx.xxx -p 6379 [-a 密码]
+~~~
+
 **linux**
 
 1. 下载获取安装包
 
-2. 解压到 `/opt/` 
+2. 解压
 
     ~~~bash
-    mv redis-6.2.6.tar.gz /opt
-    cd /opt
     tar -zxvf redis...
     ~~~
 
@@ -115,15 +120,17 @@ redis会周期性的把更新的数据写入磁盘或者把修改操作写入追
 
 ~~~bash
 yum install gcc-c++
-
+# 进入到redis的目录中执行make编译     cd redis.....
 make
-
+# 进入src目录执行make install安装  		 cd src
 make install
 ~~~
 
-4. redis的默认安装路径`/usr/local/bin/ ` 目录下
-5. 在 `usr/local/bin/` 目录下创建 一个文件夹`zconfig` 将`redis.conf` 配置文件复制进来，保证以后有问题可以恢复
+4. redis的默认安装路径`/usr/local/bin/ ` 目录下（找到安装目录）
+5. 在 `usr/local/bin/` 目录下创建 一个文件夹`zconfig` 将`redis.conf` 配置文件复制进来，保证以后有问题可以恢复（可以不做）
 6. redis默认不是后台启动，修改配置文件，使其默认后台启动   `daemonize` 改为 yes
+
+   在redis....目录下找到 `redis.conf`
 
 ~~~bash
 ################################# GENERAL #####################################
@@ -137,13 +144,14 @@ daemonize yes
 7. 启动Redis服务
 
 ~~~bash
-[root@zyh bin]# redis-server zconfig/redis.conf 
+# 进入到src目录下执行
+[root@zyh src]# ./redis-server ../redis.conf
 ~~~
 
 8. 测试连接
 
 ~~~shell
-[root@zyh bin]# redis-cli -p 6379
+[root@zyh bin]# ./redis-cli -p 6379
 127.0.0.1:6379> ping
 PONG
 127.0.0.1:6379> 
@@ -152,7 +160,7 @@ PONG
 9. 关闭Redis服务
 
 ~~~shell
-[root@zyh bin]# redis-cli -p 6379
+[root@zyh bin]# ./redis-cli -p 6379
 127.0.0.1:6379> shutdown
 not connected> exit
 ~~~
@@ -228,7 +236,7 @@ Redis引入多线程的原因：
 1. 充分利用CPU多核，6.0之前主线程只能利用一个核
 2. 多线程任务可以分摊Redis同步IO读写负荷。
 
-#### Redis-key
+#### Redis-key通用命令
 
 **exists**   判断某个key是否存在
 
@@ -523,9 +531,9 @@ set中的值不能是重复的
 # sadd				# 向集合添加一个或多个成员
 # smembers			# 返回集合中的所有成员
 # sismember			# 判断元素是否是集合 key 的成员
-127.0.0.1:6379> sadd myset "hello"		# set集合中添加元素
+127.0.0.1:6379> sadd myset hello		# set集合中添加元素
 (integer) 1
-127.0.0.1:6379> sadd myset "world"
+127.0.0.1:6379> sadd myset world
 (integer) 1
 127.0.0.1:6379> sadd myset hello
 (integer) 0
@@ -1107,8 +1115,56 @@ void contextLoads() {
     // redisTemplate.opsForValue  操作 String
     // redisTemplate.opsForList   操作 List
     // ......
-    RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
-    connection.flushDb();           // 对数据库进行操作
+    // RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
+    // connection.flushDb();           // 对数据库进行操作
+    redisTemplate.opsForValue().set("key1","v1");
+    System.out.println(redisTemplate.opsForValue().get("key1"));
+}
+~~~
+
+#### Spring Data Redis
+
+~~~xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+~~~
+
+Spring Data Redis中提供了一个高度封装的类：RedisTemplate，针对jedis客户端大量api进行了归类封装，将同一类型操作封装为operation接口
+
+- ValueOperations：简单k-v操作
+- SetOperations：set类型数据操作
+- ZSetOperations：zset类型数据操作
+- HashOperaitions：针对map类型的数据操作
+- ListOperations：针对list类型的数据操作
+
+~~~properties
+# Redis相关配置
+spring.redis.host=localhost
+spring.redis.port=6379
+#spring.redis.password=123456
+# 连接的是 0 号数据库
+spring.redis.database=0
+# 连接池配置
+# 最大连接数
+spring.redis.jedis.pool.max-active=8
+# 连接池最大空闲连接
+spring.redis.jedis.pool.max-idle=4
+# 连接池最大阻塞等待时间
+spring.redis.jedis.pool.max-wait=1ms
+# 连接池中的最小空闲连接
+spring.redis.jedis.pool.min-idle=0
+~~~
+
+2. 测试
+
+~~~java
+@Autowired
+private RedisTemplate redisTemplate;
+
+@Test
+void contextLoads() {
     redisTemplate.opsForValue().set("key1","v1");
     System.out.println(redisTemplate.opsForValue().get("key1"));
 }
@@ -1147,9 +1203,9 @@ public class RedisConfig {
         template.setKeySerializer(stringRedisSerializer);
         // hash的key采用String的序列化方式
         template.setHashKeySerializer(stringRedisSerializer);
-        // hash的value采用String的序列化方式
+        // hash的value采用String的序列化方式,对value序列化可能会报错LocalDateTime,注掉就好
         template.setHashValueSerializer(stringRedisSerializer);
-        // value采用 jackson 的序列化方式
+        // value采用 jackson 的序列化方式，对value序列化可能会报错LocalDateTime，注掉就好
         template.setValueSerializer(jackson2JsonRedisSerializer);
         template.afterPropertiesSet();
 
@@ -1218,7 +1274,7 @@ OK
 127.0.0.1:6379> config get requirepass
 1) "requirepass"
 2) "123456"
-127.0.0.1:6379> auth 123456 					# 登录
+127.0.0.1:6379> auth 123456 					# 登录(先连接上来在登录)
 ~~~
 
 **限制 CLIENTS**
@@ -1250,7 +1306,7 @@ appendfsync everysec		# 每秒执行一次 sync，可能会丢失这 1s的数据
 
 1.  daemonize yes
 2. 注释 bind 127.0.0.1
-3. protected-mode no
+3. protected-mode no（可能不需要）
 4. 开放端口
 
 如果还不行，就配置一个密码
