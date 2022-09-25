@@ -606,27 +606,243 @@ class Father(){}
 
 **函数式接口**
 
-> 定义：任何接口，如果只包含唯一一个抽象方法，那么就是一个函数是接口。
+> 定义：任何接口，如果只包含唯一一个**抽象**方法，那么就是一个函数是接口
 
 ~~~java
+@FunctionalInterface	// 可以使用此注解来检查是否是函数式接口
 interface 接口名{			// 函数式接口
-    int test(int a, int b);
+    void test(int a, int b);
+    /**default void test2(){	默认方法可以存在，此接口仍然是函数式接口
+        // 实现代码.....
+    }*/
+    String toString();			// Object 下面的方法也可以存在，此接口仍然是函数式接口
 }
-接口名 a = (int a,int b) -> 5+5;
+~~~
+
+语法格式一：无参数，无返回值
+
+~~~java
+// 之前写法
+接口名 t = new 接口名(){
+    public void test(){
+        System.out.println("testtest");
+    }
+}
 ~~~
 
 ~~~java
-// 之前的写法
-interface 接口名{
-    int test(int a, int b);
+// Lambda 表达式
+接口名 t = () -> System.out.println("testtest");
+~~~
+
+语法格式二：有一个参数，无返回值
+
+~~~java
+(x) -> System.out.println(x);
+// 一个参数小括号可以省略
+x -> System.out.println(x);
+~~~
+
+语法格式三：有两个以上的参数，有返回值，有多条语句需要加大括号 `{}`
+
+~~~java
+(x,y) -> {		// 多条语句
+    Syste.0m.out.println("testtest")
+    return x+y;
 }
-接口名 a1 = new 接口名 {
-    @Override
-    public int test(int a, int b) {
-        return a+b;
+(x,y) -> x+y;	// 单条语句，return 和 大括号可以省略
+~~~
+
+#### 方法引用
+
+> 若Lambda体中的内容由方法已经实现，可以使用方法引用（可以理解为时Lambda表达式另一种表现形式）
+
+主要有三种语法格式
+
+- 对象::实例方法名
+- 类名::静态方法名
+- 类名::实例方法名
+
+注意：
+
+1. Lambda 体中调用方法的参数列表和返回值类型，要与函数接口中抽象方法的函数列表和返回值类型保持一致
+2. Lambda 参数列表中的第一参数是实例方法的调用者，而第二个参数是实例方法的参数时，可以使用 类名::方法名
+
+## Stream流
+
+> Stream流是数据渠道，用于操作数据源（集合、数组等）所生成的元素序列
+>
+> 集合讲的是数据，流讲的是计算
+
+Stream流的三个不步骤：
+
+① 创建Stream（一个数据源）
+
+② 中间操作（对数据源的数据进行处理）
+
+③ 终止操作（执行中间操作链后产生结果）
+
+注意：
+
+1. Stream 自己不会存储元素
+2. Stream 不会改变源对象，会返回一个新的Stream
+3. Stream 操作是延迟执行的，也就是需要结果的时候才会执行
+
+~~~java
+ArrayList<String> list = new ArrayList<>();
+// 1. 第一种 可以用过 Collection 系列集合提供的stream()或parallelStream()获取流
+Stream<String> stringStream = list.parallelStream();	// 多线程流-并行
+Stream<String> stream = list.stream();
+// 2. 通过 Arrays 中的静态方法stream() 获取数组流
+String[] strs = new String[10];
+Stream<String> stream1 = Arrays.stream(strs);
+// 3. 通过Stream类中的静态方法 of() 获取流
+Stream<String> stream2 = Stream.of("aa", "bb", "cc");
+~~~
+
+#### 常用方法
+
+~~~java
+// filter -- 接收 Lambda，从流中排除某些元素
+// limit  -- 截断流，使其元素不超过给定数量
+// skip(n)-- 跳过元素，返回一个扔掉钱 n 个元素的流。若元素不足n个，返回一个空流
+// distinct-- 筛选，通过流所生成元素的hashCode() 和 equals() 去除重复元素
+~~~
+
+~~~java
+List<Employee> employees = new ArrayList<>();
+employees.add(new Employee("wangwu",30));
+employees.add(new Employee("lisi",10));
+// filter
+Stream<Employee> employeeStream = employees.stream()
+    .filter((e) -> e.getAge() > 20);
+employeeStream.forEach((x) -> System.out.println(x.toString()));
+}
+// limit	设置是几，就取几个
+employees.stream().limit(2).forEach((x) -> System.out.println(x.toString()));
+// skip		设置是几，就跳过几个
+employees.stream().skip(2).forEach((x) -> System.out.println(x.toString()));
+// distinct		注意是根据hashCode 和 equals 进行去重
+employees.stream().distinct().forEach((x) -> System.out.println(x.toString()));
+~~~
+
+~~~java
+// 映射
+// map	-- 接收 Lambda，将元素转换为其他形式或提取信息。接收一个函数作为参数，该函数会被应用到每个元素上，并将其映射成一个新元素
+// flatMap -- 接收一个函数作为参数，将流中的每个值都换成另一个流，然后把所有流连接成一个流
+~~~
+
+~~~java
+// map 举例一：
+employees.stream().map(employee -> employee.getName()).forEach(x -> System.out.println(x));
+// map 举例二：
+List<String> strings = Arrays.asList("aaa", "bbb", "ccc");
+strings.stream().map((str) -> str.toUpperCase()).forEach(x-> System.out.println(x));
+// flatMap
+和map使用方式一样，是实现原理不懂，map将流中每个元素当成一个流使用。flatMap将每个流中元素提取出来，合并成一个流使用。
+类似于  源流：{123},{4,5,6}
+map={{1,2,3},{4,5,6}} flatMap={1,2,3,4,5,6}
+~~~
+
+~~~java
+// 排序
+List<String> strings = Arrays.asList("aaa", "ddd", "ccc");
+// sorted() -- 自然排序(Comparator)
+strings.stream().sorted().forEach(x-> System.out.println(x));
+// sorted(Comparator com)   -- 定制排序(Comparator)
+employees.stream().sorted((e1,e2) -> {
+    if (e1.getAge() == e2.getAge()){
+        return e1.getName().compareTo(e2.getName());
+    }else {
+        return e2.getAge() - e1.getAge();
     }
-};
-int a = a1.test(5,5);
+}).forEach(x -> System.out.println(x));
+~~~
+
+~~~java
+// 查找与匹配
+allMatch	-- 检查是否匹配所有元素
+anyMatch --  检查是否至少匹配一个元素
+noneMatch -- 检查是否没有匹配所有元素
+findFirst	--   返回第一个元素
+findAny	   -- 	返回当前流中的任意元素
+count		-- 	  返回流中元素的总个数
+max		   --    返回流中最大值
+min			--	  返回流中最小值
+// 举例allMatch
+boolean b1 = employees.stream().allMatch((e)->e.getName("test"));
+// max
+Optional<Employee> op1 = employees.stream().max((e1,e2)->Double.compare(e1.getSalary(),e2.getSalary()));	// 返回Optional 是因为流中的值可能存在空指针异常，就需要返回Optional
+System.out.println(op1.get());
+~~~
+
+~~~java
+// 归约
+// reduce(T identity,BinaryOperator)	/ reduce(BinaryOperator)	-- 可以将流中元素反复结合起来，得到一个值
+List<Integer> list = Arrays.asList(1,2,3,4,5,6,7,8,9);
+Integer sum = list.stream().reduce(0,(x,y) -> x + y); // 0 是起始值，先赋值给 x ，list的第一个元素赋值给y，相加的结果赋值给x，list的第二个元素赋值给y，相加的结果赋值給x……就是list的所有元素反复结合起来，最终返回一个值
+System.out.println(sum);
+~~~
+
+~~~java
+// 收集
+// collect	-- 将流转换为其他形式。接收一个Collection接口的实现，用于給Stream中元素做汇总的方法	
+employees.stream().map(Employee::getName).collect(Collectors.toList()).forEach(x-> System.out.println(x));	// 转换为List
+employees.stream().map(Employee::getName).collect(Collectors.toSet()).forEach(x-> System.out.println(x));	// 转换为Set
+HashSet<String> collect = employees.stream().map((x) -> x.getName())
+    .collect(Collectors.toCollection(() -> new HashSet<>()));	// 转换为HashSet
+// 求总数、平均值、总和、最大值……
+employee.stream().collect(Collectors.averagingDouble(Employee::getSalary));	// 平均
+employee.stream().collect(Collectors.summingDouble(Employee::getSalary));	// 总和
+employee.stream().collect(Collectors.maxBy(e1,e2)->Double.compare(e1.getSalary(),e2.getSalary()));	// 最大值
+// 分组
+Map<String,List<Employee>> map = employee.stream().collect(Collectors.groupingBy(Employee::getName));
+// 多级分组
+Map<String,Map<String,List<Employee>>> map = employee.stream().collect(Collectors.groupingBy(Employee::getName),Collectors.groupingBy(e)->{if(((Employee)e).getAge() <= 35){return "青年"}});
+// 分区
+Map<String,List<Employee>> map = employee.stream().collect(Collectors.partitioningBy((e)->e.getSalary()>5000));
+~~~
+
+#### 并行流
+
+> **并行流** 就是把一个内容分成多个数据块，并用不同的线程分别处理每个数据块的流
+
+Java8 中将并行进行了优化，可以很容易的对数据进行并行操作。
+
+Stream API 可以通过parallel() 与 sequential() 在并行流和顺序流中进行切换
+
+~~~java
+xxx.stream().parallel().……;	// 切换为并行流
+~~~
+
+#### Optional类
+
+> Optional<T> 是在java.util.Optional下的一个容器类，代表一个值存在或不存在，原来用null表示一个值不存在。现在可以使用Optional更好的表达这个概念，并且可以用来避免空指针异常
+
+常用方法
+
+~~~java
+// Optional.of(T t)				 -- 创建一个Optional 实例
+// Optional.empty()			   -- 创建一个空的 Optional 实例
+// Optional.ofNullable(T t)		-- 若 t 不为null，创建 Optional实例，否则创建空实例
+// isPresent()				--	判断是否包含值
+// orElse(T t)				--	如果调用对象包含值，返回该值，否则返回t
+// orElseGet(Supplier s)	-- 如果调用对象包含值，返回该值，否则返回s获取的值
+// map(Function f)			  -- 如果有值对其处理，并返回处理后的Optional，否则返回空实例
+// flatMap(Function mapper)	-- 与map类似，要求返回值必须和源类型(mapper类型)相同
+~~~
+
+~~~java
+Optional<Employee> op = Optional.of(new Employee());
+Employee emp = op.get();	// 获取到Employee实例对象
+// orElse
+Optional<Employee> op = Optional.of(new Employee());
+op.orElse(new Employee("zhangsan",20));	// 如果op之前有值,就之前的值，没有就new的为值
+// map
+Optional<Employee> op = Optional.of(new Employee());
+op.orElse(new Employee("zhangsan",20));
+Optional<String> str = op.map((e) -> e.getName());
+System.out.println(str.get());
 ~~~
 
 ## 异常
