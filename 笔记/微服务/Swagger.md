@@ -50,7 +50,7 @@ public class SwaggerConfig {
 
 参考：[Springfox Reference Documentation](https://springfox.github.io/springfox/docs/snapshot/#migrating-from-existing-2-x-version)
 
-1. 导入依赖
+1. 导入依赖（此处使用的是swagger3,3只有一个依赖）
 
 ~~~xml
 <dependency>
@@ -81,6 +81,8 @@ spring.mvc.pathmatch.matching-strategy=ant_path_matcher
 #### 使用knife4j
 
 > knife4j 是为java mvc框架继承Swagger生成Api文档的增强解决方案
+>
+> 有个好处，不用纠结上方版本问题
 
 1. 导入依赖
 

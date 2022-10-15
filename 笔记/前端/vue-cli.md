@@ -1465,7 +1465,7 @@ export default {
 
 > npm i vue-router@3
 
-1. 创建文件：`src/router/idnex.js`
+1. 创建文件：`src/router/index.js`
 
 ~~~js
 // 改文件专门用于创建整个应用的路由器

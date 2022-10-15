@@ -402,3 +402,69 @@ void test6(){
 
 [代码生成器配置新 | MyBatis-Plus (baomidou.com)](https://baomidou.com/pages/981406/)
 
+1.导包
+
+~~~xml
+<!-- 代码生成器 -->
+<dependency>
+    <groupId>com.baomidou</groupId>
+    <artifactId>mybatis-plus-generator</artifactId>
+    <version>3.5.1</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.velocity</groupId>
+    <artifactId>velocity</artifactId>
+    <version>1.7</version>
+</dependency>
+~~~
+
+2. 新建一个代码生成器类
+
+~~~java
+package com.zyh.backstagesystem.utils;
+
+import com.baomidou.mybatisplus.generator.FastAutoGenerator;
+import com.baomidou.mybatisplus.generator.config.OutputFile;
+
+import java.util.Collections;
+
+/**
+ * mp代码生成器
+ * by 浅.
+ * @since 2022-01-26
+ */
+public class CodeGenerator {
+
+    public static void main(String[] args) {
+        generate();
+    }
+
+    private static void generate() {
+        FastAutoGenerator.create("jdbc:mysql://localhost:3306/backstagesystem?serverTimezone=GMT%2b8", "root", "123456")
+                .globalConfig(builder -> {
+                    builder.author("浅.") // 设置作者
+//                            .enableSwagger() // 开启 swagger 模式
+                            .fileOverride() // 覆盖已生成文件
+                            .outputDir("D:\\mycode\\java\\backstageSystem\\src\\main\\java\\"); // 指定输出目录
+                })
+                .packageConfig(builder -> {
+                    builder.parent("com.zyh.backstagesystem") // 设置父包名
+                            .moduleName(null) // 设置父包模块名
+                            .entity("pojo") // 实体类包名默认entity 此处改为pojo
+                            .pathInfo(Collections.singletonMap(OutputFile.mapperXml, "D:\\mycode\\java\\backstageSystem\\src\\main\\resources\\mapper\\")); // 设置mapperXml生成路径
+                })
+                 .strategyConfig(builder -> {
+                    builder.entityBuilder().enableLombok(); // 使用Lombok，默认使用的get set方式
+                    builder.mapperBuilder().enableMapperAnnotation().build();   // 在Mapper层上加 @Mapper注解
+                    builder.controllerBuilder().enableHyphenStyle()  // 开启驼峰转连字符
+                            .enableRestStyle();  // 开启生成@RestController 控制器
+                    builder.addInclude("sys_menu") // 设置需要生成的表名
+                            .addTablePrefix("t_", "sys_"); // 设置过滤表前缀
+                })
+//                .templateEngine(new FreemarkerTemplateEngine()) // 使用Freemarker引擎模板，默认的是Velocity引擎模板
+                .execute();
+
+    }
+}
+~~~
+

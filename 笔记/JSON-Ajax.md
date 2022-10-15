@@ -28,7 +28,7 @@ var json = JSON.stringify({a:'hello',b:'world'});	// 结果是{"a":"hello","b":"
 
 #### 前后台传 Json 对象
 
-@RespnseBody注解：把后台的对象转换为json对象，返回到页台
+@RespnseBody注解：把后台的对象转换为json对象，返回到页面
 
 @RequestBody注解：负责接收前台的json数据，吧json数据自动封装到pojo中
 
