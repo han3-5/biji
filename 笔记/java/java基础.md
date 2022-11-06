@@ -713,7 +713,7 @@ Stream<String> stream2 = Stream.of("aa", "bb", "cc");
 List<Employee> employees = new ArrayList<>();
 employees.add(new Employee("wangwu",30));
 employees.add(new Employee("lisi",10));
-// filter
+// filter	此处返回30 即不符合的排除掉
 Stream<Employee> employeeStream = employees.stream()
     .filter((e) -> e.getAge() > 20);
 employeeStream.forEach((x) -> System.out.println(x.toString()));

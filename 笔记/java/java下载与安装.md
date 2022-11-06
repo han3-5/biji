@@ -21,7 +21,9 @@
 #### windows
 
 1. 新建 **`JAVA_HOME`**变量，值放入jdk包的目录
-2. 新建**`CLASSPATH`**变量，值如下
+2. 新建**`CLASSPATH`**变量，值如下（jdk1.5之后可以不用配置）
+
+> 如果配置了，就相当于指定了寻找class文件的路径，桌面写java还有可能报错
 
 ~~~bash
 %JAVA_HOME%\lib;%JAVA_HOME%\jre\lib

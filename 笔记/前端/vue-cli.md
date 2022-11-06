@@ -1820,3 +1820,15 @@ beforeRouteLeave(to,from,next){
     2. 兼容性比hash模式相比略差
     3. 应用部署上线时需要后端支持，解决刷新页面报404错误
 
+## 部署vue项目
+
+~~~bash
+npm run build	# 打包
+~~~
+
+~~~bash
+# 进入生成的dist文件夹
+npm install anywhere # 生成前端静态资源服务器插件
+anywhere -p 端口
+~~~
+

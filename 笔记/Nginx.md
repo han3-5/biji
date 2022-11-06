@@ -113,7 +113,7 @@ location /img/ {
 	root /var/www/image;
 }
 #若按照这种配置的话，则访问/img/目录下的文件时，nginx会去/var/www/image/img/目录下找文件
-# 如 xxx/var/www/image/img/test.jpg 查找为 xxx/var/www/image/img/test.jpg
+# 如 xxx/img/test.jpg 查找为 xxx/var/www/image/img/test.jpg
 ~~~
 
 #### 负载均衡
