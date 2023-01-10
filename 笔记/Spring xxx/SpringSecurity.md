@@ -1,4 +1,4 @@
-## SpringSecurity
+##  SpringSecurity
 
 注: 导入之后，先把依赖注掉，测一下其他功能正不正常。不注掉依赖，启动项目会一直跳转到一个登录界面
 
@@ -12,11 +12,9 @@
 
 SpringSecurity的两个主要目标 "认证" 和  "授权" (访问控制)
 
-"认证" （Authentication）
+"认证" （Authentication）：验证当前访问系统的是不是本系统用户，无需确认具体是哪个用户
 
-"授权"（Authorization）
-
->  概念是通用的，不仅仅在SpringSecurity中存在
+"授权"（Authorization）：经过认证后判断当前用户是否有权限进行某些操作
 
 **导入依赖**
 
@@ -27,7 +25,13 @@ SpringSecurity的两个主要目标 "认证" 和  "授权" (访问控制)
 </dependency>
 ~~~
 
-#### 认证和授权
+项目启动后默认用户名是 **user** 密码会输出到控制台
+
+- 登录
+  1. 自定义登录接口：调用ProviderManager的方法进行认证，如果认证通过生成JWT。吧用户信息存入redis中
+  2. 自定义UserDetailsService：在这个实现中去查询数据库
+- 校验
+  1. 定义JWT认证过滤器 - 获取token、解析token、从redis中获取用户信息、存入SecurityContextHolder
 
 1. 编写 Security 配置类
 
@@ -82,6 +86,220 @@ protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 }
 ~~~
 
+#### 使用-认证
+
+1. 重写UserDetailsServiceImpl
+
+~~~java
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
+    private MenuMapper menuMapper;
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        //查询用户信息
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUserName,username);
+        User user = userMapper.selectOne(queryWrapper);
+        //如果没有查询到用户就抛出异常
+        if(Objects.isNull(user)){
+            throw new RuntimeException("用户名或者密码错误");
+        }
+        //        List<String> list = new ArrayList<>(Arrays.asList("test","admin"));
+        List<String> list = menuMapper.selectPermsByUserId(user.getId());
+        //把数据封装成UserDetails返回
+        return new LoginUser(user,list);
+    }
+}
+~~~
+
+2. LoginUser
+
+~~~java
+@Data
+@NoArgsConstructor
+public class LoginUser implements UserDetails {
+    private User user;
+    private List<String> permissions;
+    public LoginUser(User user, List<String> permissions) {
+        this.user = user;
+        this.permissions = permissions;
+    }
+    @JSONField(serialize = false)
+    private List<SimpleGrantedAuthority> authorities;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if(authorities!=null){
+            return authorities;
+        }
+        //把permissions中String类型的权限信息封装成SimpleGrantedAuthority对象
+        //       authorities = new ArrayList<>();
+        //        for (String permission : permissions) {
+        //            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(permission);
+        //            authorities.add(authority);
+        //        }
+        authorities = permissions.stream()
+            .map(SimpleGrantedAuthority::new)
+            .collect(Collectors.toList());
+        return authorities;
+    }
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+    @Override
+    public String getUsername() {
+        return user.getUserName();
+    }
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+}
+~~~
+
+1. controller层
+2. service层方法 - controller层调用的方法
+
+~~~java
+@Service
+public class LoginServiceImpl implements LoginServcie {
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private RedisCache redisCache;
+
+    @Override
+    public ResponseResult login(User user) {
+        //AuthenticationManager authenticate进行用户认证
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(user.getUserName(),user.getPassword());
+        Authentication authenticate = authenticationManager.authenticate(authenticationToken);
+        //如果认证没通过，给出对应的提示
+        if(Objects.isNull(authenticate)){
+            throw new RuntimeException("登录失败");
+        }
+        //如果认证通过了，使用userid生成一个jwt jwt存入ResponseResult返回
+        LoginUser loginUser = (LoginUser) authenticate.getPrincipal();
+        String userid = loginUser.getUser().getId().toString();
+        String jwt = JwtUtil.createJWT(userid);
+        Map<String,String> map = new HashMap<>();
+        map.put("token",jwt);
+        //把完整的用户信息存入redis  userid作为key
+        redisCache.setCacheObject("login:"+userid,loginUser);
+        return new ResponseResult(200,"登录成功",map);
+    }
+}
+~~~
+
+3. 配置Security
+
+~~~java
+@Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    //创建BCryptPasswordEncoder注入容器
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+    @Autowired
+    private JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
+    @Autowired
+    private AuthenticationEntryPoint authenticationEntryPoint;
+    @Autowired
+    private AccessDeniedHandler accessDeniedHandler;
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+            //关闭csrf
+            .csrf().disable()
+            //不通过Session获取SecurityContext
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+            // 对于登录接口 允许匿名访问 - 不匿名就不能访问
+            .antMatchers("/user/login").anonymous()
+           // .antMatchers("/user/login").permitAll() 无论是否登录都可以访问
+            // .antMatchers("/testCors").hasAuthority("system:dept:list222") 授权代替了注解@PreAuthorize("hasAnyAuthority('system:dept:list222')")
+            // 除上面外的所有请求全部需要鉴权认证
+            .anyRequest().authenticated();
+        
+        //添加过滤器
+        http.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
+        //配置异常处理器
+        http.exceptionHandling()
+            //配置认证失败处理器
+            .authenticationEntryPoint(authenticationEntryPoint)
+            .accessDeniedHandler(accessDeniedHandler);
+        //允许跨域
+        http.cors();
+    }
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+}
+~~~
+
+4. 认证过滤器
+
+~~~java
+@Component
+public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
+    @Autowired
+    private RedisCache redisCache;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        //获取token
+        String token = request.getHeader("token");
+        if (!StringUtils.hasText(token)) {
+            //放行
+            filterChain.doFilter(request, response);
+            return;
+        }
+        //解析token
+        String userid;
+        try {
+            Claims claims = JwtUtil.parseJWT(token);
+            userid = claims.getSubject();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("token非法");
+        }
+        //从redis中获取用户信息
+        String redisKey = "login:" + userid;
+        LoginUser loginUser = redisCache.getCacheObject(redisKey);
+        if(Objects.isNull(loginUser)){
+            throw new RuntimeException("用户未登录");
+        }
+        //存入SecurityContextHolder
+        //TODO 获取权限信息封装到Authentication中
+        UsernamePasswordAuthenticationToken authenticationToken =
+            new UsernamePasswordAuthenticationToken(loginUser,null,loginUser.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+        //放行
+        filterChain.doFilter(request, response);
+    }
+}
+~~~
+
 #### 权限控制和注销
 
 1. 前端
@@ -118,11 +336,157 @@ protected void configure(HttpSecurity http) throws Exception {
 http.csrf().disable();
 ~~~
 
+#### 注销
+
+~~~java
+@Service
+public class LoginServiceImpl implements LoginServcie {
+    @Autowired
+    private AuthenticationManager authenticationManager;
+    @Autowired
+    private RedisCache redisCache;
+    @Override
+    public ResponseResult logout() {
+        //获取SecurityContextHolder中的用户id
+        UsernamePasswordAuthenticationToken authentication = (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userid = loginUser.getUser().getId();
+        //删除redis中的值
+        redisCache.deleteObject("login:"+userid);
+        return new ResponseResult(200,"注销成功");
+    }
+}
+
+~~~
+
+
+
 #### 记住我
 
 ~~~java
 http.rememberMe();  // 记住我功能 cookie实现，默认保存两周
 ~~~
+
+#### 授权
+
+> 在SpringSecurity中，会使用默认的FilterSecurityInterceptor来进行权限校验。
+>
+> 在FilterSecurityInterceptor中会从SecurityContextHolder获取其中的Authentication，然后获取其中的权限信息
+
+SpringSecurity提供了注解的权限方案。使用之前需要在配置类上添加
+
+~~~java
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+~~~
+
+然后就可以使用对应的注解 `@PreAuthorize`
+
+~~~java
+@RequestMapping("/hello")
+@PreAuthorize("hasAnyAuthority('admin','test','system:dept:list')")
+public String hello(){
+    public String hello(){
+        return "hello";
+    }
+~~~
+
+**自定义权限校验方法**
+
+1. 创建类SGExpressionRoot
+
+~~~java
+@Component("test")
+public class SGExpressionRoot {
+    public boolean hasAuthority(String authority){
+        //获取当前用户的权限
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        List<String> permissions = loginUser.getPermissions();
+        //判断用户权限集合中是否存在authority
+        return permissions.contains(authority);
+    }
+}
+~~~
+
+2. 对应的controller方法上使用注解
+
+~~~java
+@RequestMapping("/hello")
+@PreAuthorize("@test.hasAuthority('system:dept:list')")
+public String hello(){
+    return "hello";
+}
+~~~
+
+#### 自定义失败处理
+
+> 在SpringSecurity中，如果认证或授权的过程中异常会被ExceptionTranslationFilter捕获到。
+>
+> **认证** 过程中异常会被封装成AuthenticationException然后调用**AuthenticationEntryPoint** 对象进行异常处理
+>
+> **授权** 过程中异常会被封装成AccessDeniedException然后调用**AccessDeniedHandler** 对象进行异常处理
+
+WebUtils
+
+~~~java
+public class WebUtils
+{
+    /**
+     * 将字符串渲染到客户端
+     * 
+     * @param response 渲染对象
+     * @param string 待渲染的字符串
+     * @return null
+     */
+    public static String renderString(HttpServletResponse response, String string) {
+        try
+        {
+            response.setStatus(200);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            response.getWriter().print(string);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}
+~~~
+
+**认证**
+
+~~~java
+@Component
+public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        ResponseResult result = new ResponseResult(HttpStatus.UNAUTHORIZED.value(),"用户认证失败请查询登录");
+        String json = JSON.toJSONString(result);
+        //处理异常
+        WebUtils.renderString(response,json);
+    }
+}
+~~~
+
+**授权**
+
+~~~java
+@Component
+public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        ResponseResult result = new ResponseResult(HttpStatus.FORBIDDEN.value(),"您的权限不足");
+        String json = JSON.toJSONString(result);
+        //处理异常
+        WebUtils.renderString(response,json);
+    }
+}
+
+~~~
+
+
 
 ## Shiro
 

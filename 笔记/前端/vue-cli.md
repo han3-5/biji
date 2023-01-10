@@ -136,8 +136,11 @@ ref属性：
 父传子
 
 ~~~vue
-<school name="name1"></school>			<!--接收的是字符串-->
-<school v-bind:name="name1"></school>	<!--会进行绑定，接收的会是表达式-->
+<school name="name1"></school>			<!--传的是字符串-->
+<school v-bind:name="name1"></school>	<!--会进行绑定，传的会是表达式-->
+~~~
+
+~~~js
 <script> // school 组件的配置
 export default {
     name: 'School',
@@ -370,8 +373,8 @@ App.vue
 <div>
     <!-- 通过父组件给子组件绑定一个自定义事件，实现子给父传数据（第一种写法） -->
     <!-- <school @getName='getName1'></school> -->
-    <!-- 通过父组件给子组件绑定一个自定义事件，实现子给父传数据（第一种写法）更灵活 -->
-    <school ref='getName1'></school>
+    <!-- 通过父组件给子组件绑定一个自定义事件，实现子给父传数据（第二种写法）更灵活 -->
+    <school ref='getName'></school>
     </div>
 </template>
 
@@ -386,7 +389,7 @@ App.vue
             }
         },
         mounted() {
-            this.$refs.getName1.$on('getName',this.getName1)	// 收数据方
+            this.$refs.getName.$on('getName',this.getName1)	// 收数据方
         },
     }
 </script>
@@ -1045,7 +1048,7 @@ export default {
 
 > npm i vuex@3
 
-1. 创建文件：`src/store/idnex.js`
+1. 创建文件：`src/store/index.js`
 
 ~~~js
 // 改文件用于创建Vuex中最为核心的store
@@ -1828,7 +1831,45 @@ npm run build	# 打包
 
 ~~~bash
 # 进入生成的dist文件夹
+cd dist
 npm install anywhere # 生成前端静态资源服务器插件
 anywhere -p 端口
+~~~
+
+~~~bash
+# linux服务器上-部署到nginx
+server {
+    listen       80;
+    server_name  localhost;
+    client_max_body_size 1024m;
+    root	/home/zyh/dist;
+    location / {
+    }
+}
+~~~
+
+#### 修改端口
+
+方法一：在package.json 文件下设置
+
+~~~json
+{
+    "scripts": {
+    "serve": "vue-cli-service serve --port xxxx",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+} 
+~~~
+
+方法二：在 vue.config.js 文件下配置
+
+~~~js
+module.exports = {
+    devServer: {
+        port: xxxx, // 端口
+    }
+    // lintOnSave: false // 取消 eslint 验证
+}
 ~~~
 

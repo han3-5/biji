@@ -8,6 +8,47 @@
 
     jsp、Servlet、mysql驱动、jstl、stand...
 
+    ~~~xml
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+    </dependency>
+    <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>servlet-api</artifactId>
+        <version>2.5</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.27</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/javax.servlet.jsp/jsp-api -->
+    <dependency>
+        <groupId>javax.servlet.jsp</groupId>
+        <artifactId>jsp-api</artifactId>
+        <version>2.2</version>
+    </dependency>
+    <dependency>
+        <groupId>taglibs</groupId>
+        <artifactId>standard</artifactId>
+        <version>1.1.2</version>
+    </dependency>
+    <dependency>
+        <groupId>javax.servlet.jsp.jstl</groupId>
+        <artifactId>javax.servlet.jsp.jstl-api</artifactId>
+        <version>1.2.2</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>fastjson</artifactId>
+        <version>1.2.79</version>
+    </dependency>
+    ~~~
+
 4. 创建实体类
 
     和数据库 ORM

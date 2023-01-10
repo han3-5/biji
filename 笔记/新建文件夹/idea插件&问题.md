@@ -6,6 +6,8 @@ File -> Settings -> Appearance
 
 File -> Settings -> Editor -> Font
 
+#  插件
+
 ## 背景图片
 
 > background image plus
@@ -41,4 +43,12 @@ File -> Settings -> Editor -> Font
 ## git忽略文件
 
 > .ignore
+
+# 问题
+
+## 空maven卡死
+
+如果通过 file -> New -> project -> New Project 大概率卡死
+
+规避：file -> Settings -> Appearance&Behavior -> System settings 中的 Reopen projects on startup 的勾选，然后重启idea . 即从*小窗口* 创建新项目就不会卡死
 
