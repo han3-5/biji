@@ -1,4 +1,4 @@
-## MybtisPlus
+##  MybtisPlus
 
 [注解 | MyBatis-Plus (baomidou.com)](https://baomidou.com/pages/223848/)
 
@@ -79,14 +79,98 @@ void contextLoads() {
 }
 ~~~
 
-## 日志
+## 配置
 
-```properties
+**表映射规则**
+
+ 实体类名上加`TableName("xxx")`注解进行标识
+
+~~~java
+@TableName("tb_user")
+public class User{}
+~~~
+
+全局设置表名前缀
+
+~~~properties
+mybatis-plus.global-config.db-config.table-prefix=tb_
+~~~
+
+**主键生成策略**
+
+> 默认情况下MP插入数据，使用的是雪花算法的自增Id
+
+如果需要设置主键自增
+
+1. 数据库的主键是设置的自增
+2. 在实体类的主键字段上加上`@TableId(type = IdType.AUTO)`
+
+~~~java
+public class User{
+    @TableId(type = IdType.AUTO)
+    private Long id;
+}
+~~~
+
+**驼峰映射**
+
+> 默认情况下MP会开启列名驼峰映射
+
+~~~properties
+# 关闭驼峰映射
+mybatis-plus.configuration.map-underscore-to-camel-case:false
+~~~
+
+**字段映射**
+
+使用注解`@TableFieId("xxx")`
+
+~~~java
+public class User{
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    @TableFieId("address")
+    private String addressStr;
+}
+~~~
+
+**日志**
+
+~~~properties
 # 配置日志 输出在控制台
 mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
-```
+~~~
 
 ## CRUD扩展
+
+#### 查询操作
+
+~~~java
+// 测试查询
+@Test
+void test1(){
+    User user = userMapper.selectById(1l);
+    System.out.println(user);
+}
+// 测试批量查询
+@Test
+void test2(){
+    List<User> users = userMapper.selectBatchIds(Arrays.asList(1,2,3));
+    for (User user : users) {
+        System.out.println(user);
+    }
+}
+// 按条件查询之一：map	map.put(列名,想要删除的具体值)
+@Test
+void test3(){
+    HashMap<String, Object> map = new HashMap<>();
+    map.put("name","test");
+    List<User> users = userMapper.selectByMap(map);
+    for (User user : users) {
+        System.out.println(user);
+    }
+}
+~~~
 
 #### 插入操作
 
@@ -146,97 +230,53 @@ void testUpdate(){
 
 所有的sql都是自动动态设置的
 
-#### 自动填充
-
-- 方式一：数据库级别（不建议使用，低版本只能一个表设置一个）
-
-创建一个字段，类型选择datetime 选上根据当前时间戳更新
-
-- 方式二：代码级别
-
-1. 在实体类上写上注解和标注填充时机
-
-~~~java
-@TableField(fill = FieldFill.INSERT)
-private LocalDateTime createTime;
-@TableField(fill = FieldFill.INSERT_UPDATE)
-private LocalDateTime updateTime;
-~~~
-
-2. 编写处理类 需要继承 MetaObjectHandler --第一种方式
+#### 删除操作
 
 ```java
-@Component
-public class MyMetaObjectHandler implements MetaObjectHandler {
-    @Override
-    public void insertFill(MetaObject metaObject) {
-        this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
-        this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-    }
-    @Override
-    public void updateFill(MetaObject metaObject) {
-        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-    }
+// 测试删除
+@Test
+void testDelete1(){
+    userMapper.deleteById(1512371235774066689l);
+}
+// 测试批量删除
+@Test
+void testDelete2(){
+    userMapper.deleteBatchIds(Arrays.asList(1512356824401412097l,1512372919946526721l));
+}
+// 按条件删除之一：map map.put(列名,想要删除的具体值)
+@Test
+void testDelete3(){
+    HashMap<String, Object> map = new HashMap<>();
+    map.put("id",1512375529109815297l);
+    userMapper.deleteByMap(map);
 }
 ```
 
-2. 编写处理类 需要继承 MetaObjectHandler  -- 第二种方式
+**逻辑删除**
+
+> 物理删除：从数据库中直接移除
+>
+> 逻辑删除：在数据库中没有被移除，而是通过一个变量来让他失效
+
+1. 增加一个deleted字段。设置默认值为 0 代表没有被删除
+
+2. 在实体类加上这个字段，并加上 `@TableLogic` 注解
 
 ~~~java
-@Component
-public class MyMetaObjectHandler implements MetaObjectHandler {
-    @Override
-    public void insertFill(MetaObject metaObject) {
-        metaObject.setValue("createTime",LocalDateTime.now());
-        metaObject.setValue("updateTime",LocalDateTime.now());
-    }
-    @Override
-    public void updateFill(MetaObject metaObject) {
-        metaObject.setValue("updateTime",LocalDateTime.now());
-    }
-}
+@TableLogic	// 3.3.0版本之前需要，之后不需要
+private Integer deleted;
 ~~~
 
-#### 乐观锁
+3. 配置
 
-> 乐观锁：十分乐观，认为不会出现问题，无论干什么不去上锁。如果出现了问题，再次更新值测试
->
-> 悲观锁：十分悲观，认为总是出现问题，无论干什么都会上锁。再去操作
-
-乐观锁实现方式：
-
-- 取出记录时，获取当前version
-- 更新时，带上这个version
-- 执行更新时，set version = newVersion where version = oldVersion
-- 如果version不对，就更新失败
-
-#### 查询操作
-
-~~~java
-// 测试查询
-@Test
-void test1(){
-    User user = userMapper.selectById(1l);
-    System.out.println(user);
-}
-// 测试批量查询
-@Test
-void test2(){
-    List<User> users = userMapper.selectBatchIds(Arrays.asList(1,2,3));
-    for (User user : users) {
-        System.out.println(user);
-    }
-}
-// 按条件查询之一：map
-@Test
-void test3(){
-    HashMap<String, Object> map = new HashMap<>();
-    map.put("name","test");
-    List<User> users = userMapper.selectByMap(map);
-    for (User user : users) {
-        System.out.println(user);
-    }
-}
+~~~properties
+# 配置
+# 逻辑已删除
+mybatis-plus.global-config.db-config.logic-delete-value=1
+# 逻辑未删除
+mybatis-plus.global-config.db-config.logic-not-delete-value=0
+# 全局逻辑删除的实体字段名
+mybatis-plus.global-config.db-config.logic-delete-field= deleted
 ~~~
 
 #### 分页查询
@@ -267,7 +307,9 @@ void testPage(){
     // 参数一：当前页
     // 参数二：页面大小
     Page<User> page = new Page<>(2, 5);
-    userMapper.selectPage(page, null);
+    // 可以不用返回值，因为结果会被设置到page中
+    userMapper.selectPage(page, null);	// 此处的null是没有查询条件
+	// getRecords()当前页数据 getTotal()总记录数 getCurrent() 当前页码
     List<User> lists = page.getRecords();
     for (User list : lists) {
         System.out.println(list);
@@ -275,58 +317,121 @@ void testPage(){
 }
 ~~~
 
-#### 删除操作
+**自定义分页**
+
+1. 实体类VO
+2. mapper接口中自定义方法
+
+~~~java
+IPage<UserVo> xxxxxVo(IPage<UserVo> page);
+~~~
+
+3. 在xml文件中写sql，不需要关心分页操作，MP会帮助完成
+4. 使用方法
+
+~~~java
+@Test
+void testPage1(){
+    Page<UserVo> page = new Page<>(2, 5);
+    userMapper.xxxxxVo(page);
+    System.out.println(page.getRecords());
+}
+~~~
+
+#### 自动填充
+
+- 方式一：数据库级别（不建议使用，低版本只能一个表设置一个）
+
+创建一个字段，类型选择datetime 选上根据当前时间戳更新
+
+- 方式二：代码级别
+
+1. 在实体类上写上注解和标注填充时机
+
+~~~java
+@TableField(fill = FieldFill.INSERT)
+private LocalDateTime createTime;
+@TableField(fill = FieldFill.INSERT_UPDATE)
+private LocalDateTime updateTime;
+~~~
+
+2. 编写处理类 需要继承 MetaObjectHandler 
 
 ```java
-// 测试删除
-@Test
-void testDelete1(){
-    userMapper.deleteById(1512371235774066689l);
-}
-// 测试批量删除
-@Test
-void testDelete2(){
-    userMapper.deleteBatchIds(Arrays.asList(1512356824401412097l,1512372919946526721l));
-}
-// 按条件删除之一：map
-@Test
-void testDelete3(){
-    HashMap<String, Object> map = new HashMap<>();
-    map.put("id",1512375529109815297l);
-    userMapper.deleteByMap(map);
+@Component
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+    }
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+    }
 }
 ```
 
-**逻辑删除**
+#### 乐观锁
 
-> 物理删除：从数据库中直接移除
+> 乐观锁：十分乐观，认为不会出现问题，无论干什么不去上锁。如果出现了问题，再次更新值测试
 >
-> 逻辑删除：在数据库中没有被移除，而是通过一个变量来让他失效
+> 悲观锁：十分悲观，认为总是出现问题，无论干什么都会上锁。再去操作
 
-1. 增加一个deleted字段。设置默认值为 0 代表没有被删除
+乐观锁实现方式：
 
-2. 在实体类加上这个字段，并加上 `@TableLogic` 注解
-
-~~~java
-@TableLogic
-private Integer deleted;
-~~~
-
-3. 配置
-
-~~~properties
-# 配置
-# 逻辑未删除
-mybatis-plus.global-config.db-config.logic-not-delete-value=0
-# 逻辑已删除
-mybatis-plus.global-config.db-config.logic-delete-value=1
-# 和实体类的注解写一个就可以
-#mybatis-plus.global-config.db-config.logic-delete-field= deleted
-~~~
+- 取出记录时，获取当前version
+- 更新时，带上这个version
+- 执行更新时，set version = newVersion where version = oldVersion
+- 如果version不对，就更新失败
 
 ## 条件查询器 Wrapper
 
+[条件构造器 | MyBatis-Plus (baomidou.com)](https://baomidou.com/pages/10c804/)
+
 ![](./iamges/mybatisplus01.webp)
+
+#### AbstractWrapper
+
+> QueryWrapper和UpdateWrapper的父类
+
+**常用**
+
+> eq：equals，等于
+>
+> gt：greater than，大于 >
+>
+> ge：greater than or equals，大于等于 ≥
+>
+> lt：less than，小于 <
+>
+> le：less than or equals，小于等于 ≤
+>
+> between：相当于SQL中的BETWEEN
+>
+> like：模糊匹配。like("name","黄")，相当于SQL中的 name like '%黄%'
+>
+> likeRight：模糊匹配右边。likeRight("name","黄")，相当于SQL中的 name like '黄%'
+>
+> likeLeft：模糊匹配左边。likeLeft("name","黄")，相当于SQL中的 name like '%黄'
+>
+> notLike：notLike("name","黄")，相当于SQL中的 name not like '%黄%'
+>
+> isNull
+>
+> isNotNull
+>
+> and：SQL连接符 AND
+>
+> or：SQL连接符 OR
+>
+> in：in("age",{1,2,3}) 相当于 age in (1,2,3)
+>
+> groupBy：groupBy("id","name") 相当于group by id,name
+>
+> orderByAsc：orderByAsc("id","name") 相当于order by id ASC,name ASC
+>
+> orderByDesc：orderByDesc("id","name") 相当于order by id DESC,name DESC
 
 测试一
 
@@ -396,7 +501,95 @@ void test6(){
 }
 ~~~
 
+#### 查询QueryWrapper
+
+**示例一** 常用
+
+> select(String...sqlSelect)
+
+想实现的sql语句：
+
+~~~sql
+select id,username,age from user
+~~~
+
+MP写法：
+
+~~~java
+public void test1(){
+    QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+    queryWrapper.select("id","username","age");
+    System.out.println(userMapper.selectList(queryWrapper));
+}
+~~~
+
+**示例二** 个人更喜欢使用示例一
+
+> select(Class<T> entityClass,Predicate<TableFieIdlnfo> predicate)
+
+方法第一个参数为实体类的字节码对象，第二个参数为Predicate类型，可以使用lambda写法，过滤要查询的字段(主键除外)
+
+想实现的sql语句：
+
+~~~sql
+select id,username,age from user
+~~~
+
+MP写法：
+
+~~~java
+public void test2(){
+    QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+    queryWrapper.select(User.class,tableFieldInfo -> "username".equals(tableFieldInfo.getColumn()) || "age".equals(tableFieldInfo.getColumn()) );
+    System.out.println(userMapper.selectList(queryWrapper));
+}
+~~~
+
+**示例三** 常用
+
+> select(Predicate<TableFieIdlnfo> predicate)
+
+方法第一个参数为Predicate类型，可以使用lambda写法，过滤要查询的字段(主键除外)
+
+想实现的sql语句：
+
+~~~sql
+select id,username,name,age from user	-- 就是不想查询address这列，其他列都查询
+~~~
+
+MP写法：
+
+~~~java
+public void test3(){
+    // 必须传入一个实体类，不然会报空指针异常
+    QueryWrapper<User> queryWrapper = new QueryWrapper<>(new User());
+    queryWrapper.select(tableFieldInfo -> !"address".equals(tableFieldInfo.getColumn()));
+    System.out.println(userMapper.selectList(queryWrapper));
+}
+~~~
+
+#### 更新UpdateWrapper
+
+想实现的sql语句：
+
+```sql
+update user set age = 99 where id > 1
+```
+
+可以使用如下写法
+
+```java
+public void test(){
+    UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+    updateWrapper.gt("id",1);
+    updateWrapper.set("age",99);
+    userMapper.update(null,updateWrapper);
+}
+```
+
 ## 代码自动生成
+
+> 可以使用mybatisX或者EasyCode插件自动生成
 
 [代码生成器（新） | MyBatis-Plus (baomidou.com)](https://baomidou.com/pages/779a6e/#快速入门)
 
@@ -467,4 +660,3 @@ public class CodeGenerator {
     }
 }
 ~~~
-
