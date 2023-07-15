@@ -43,9 +43,7 @@ yum remove docker \
 # 需要的安装包
 yum install -y yum-utils
 # 设置镜像的仓库 官方默认的是国外的，此处换成阿里云的
-yum-config-manager \
-    --add-repo \
-    http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+yum-config-manager  --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 ~~~
 
 3.  安装 docker 引擎

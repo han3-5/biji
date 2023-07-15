@@ -1156,3 +1156,15 @@ start slave;
 ~~~mysql
 show slave status;
 ~~~
+
+## 问题
+
+1055 - Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'test.student.sname' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
+
+> 重启一下navicat
+
+~~~sql
+-- 解决 
+set GLOBAL sql_mode=(select REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
+~~~
+
