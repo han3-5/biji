@@ -44,6 +44,20 @@ File -> Settings -> Editor -> Font
 
 > .ignore
 
+
+
+## 生成getset
+
+> generateAllSetter
+
+
+
+## 填充参数
+
+> Auto Filling Java Call Arguments
+
+
+
 # 问题
 
 ## 空maven卡死
